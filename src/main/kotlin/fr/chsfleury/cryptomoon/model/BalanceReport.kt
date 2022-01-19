@@ -4,24 +4,26 @@ import java.math.BigDecimal
 import java.time.Instant
 
 class BalanceReport(
-    val balances: Map<String, BigDecimal>,
+    val balanceMap: Map<String, BigDecimal>,
+    val balanceList: List<Balance>,
     val timestamp: Instant
 ) {
     companion object {
-        fun of(vararg balances: List<Balance>): BalanceReport {
+        fun of(vararg balances: List<Balance>): BalanceReport = ofSeq(balances.asSequence())
+
+        private fun ofSeq(sequence: Sequence<List<Balance>>): BalanceReport {
             val balanceMap = mutableMapOf<String, BigDecimal>()
-            balances.asSequence()
+            sequence
                 .flatMap { it }
                 .forEach {
                     balanceMap.compute(it.currency) { _, old ->
                         old?.plus(it.amount) ?: it.amount
                     }
                 }
-            return BalanceReport(balanceMap, Instant.now())
+            val balanceList = balanceMap.map { Balance(it.key, it.value) }
+            return BalanceReport(balanceMap, balanceList, Instant.now())
         }
-    }
 
-    override fun toString(): String {
-        return "BalanceReport(balances=$balances, timestamp=$timestamp)"
+        fun merge(balanceReports: Collection<BalanceReport>): BalanceReport = ofSeq(balanceReports.asSequence().map(BalanceReport::balanceList))
     }
 }

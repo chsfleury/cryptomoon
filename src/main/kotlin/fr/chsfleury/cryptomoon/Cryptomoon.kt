@@ -8,6 +8,9 @@ import com.uchuhimo.konf.ConfigSpec
 import com.uchuhimo.konf.source.yaml
 import fr.chsfleury.cryptomoon.configuration.Conf
 import fr.chsfleury.cryptomoon.connectors.Connectors
+import fr.chsfleury.cryptomoon.io.BalanceReportJson
+import fr.chsfleury.cryptomoon.model.ApiConnector
+import fr.chsfleury.cryptomoon.model.BalanceReport
 import fr.chsfleury.cryptomoon.utils.Json
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
@@ -28,21 +31,27 @@ object Cryptomoon: Logging {
         val connectorConfiguration = Json.readTree(apiConnectorFileContent)
 
         val javalin = Javalin.create()
-            .get("/") { ctx -> ctx.result("UP")}
             .start(config[Conf.port])
 
         val http = HttpClient.newHttpClient()
-        val connectors = connectorConfiguration.get("connectors") as ArrayNode
-        connectors.forEach {
+        val connectorConfigurations = connectorConfiguration.get("connectors") as ArrayNode
+        val connectors = connectorConfigurations.map {
             val node = it as ObjectNode
             val connectorType = node["type"]?.asText()?.uppercase() ?: error("bad connector type")
-            val connector = Connectors.valueOf(connectorType).get(http, node)
+            Connectors.valueOf(connectorType).get(http, node)
+        }
 
-            javalin.get("/${connectorType.lowercase()}") { ctx ->
-                val balanceReport = connector.extract()
-                ctx.json(balanceReport)
+        connectors.forEach { connector ->
+            javalin.get("/${connector.name}") { ctx ->
+                val report = connector.report()
+                ctx.json(BalanceReportJson(report.balanceMap, report.timestamp))
             }
-            log.info("adding {} connector", connectorType.lowercase())
+            log.info("adding {} connector", connector.name)
+        }
+
+        javalin.get("/") { ctx ->
+            val report = BalanceReport.merge(connectors.map(ApiConnector::report))
+            ctx.json(BalanceReportJson(report.balanceMap, report.timestamp))
         }
     }
 

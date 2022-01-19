@@ -13,7 +13,7 @@ object UriBuilder {
         return URI.create(finalUri)
     }
 
-    private fun joinQueryParams(queryParams: Map<String, String>): String = queryParams
+    fun joinQueryParams(queryParams: Map<String, Any>): String = queryParams
         .map { it.key + '=' + it.value }
         .joinToString("&")
 

@@ -10,7 +10,7 @@ import java.net.http.HttpClient
 enum class Connectors(private val factory: (HttpClient, ObjectNode) -> ApiConnector) {
     JUSTMINING({ http, config -> JustMiningConnector(http, config) }),
     BINANCE({ http, config -> BinanceConnector(http, config) }),
-    KRAKEN({ _, config -> KrakenConnector(config) });
+    KRAKEN({ http, config -> KrakenConnector(http, config) });
 
     fun get(httpClient: HttpClient, config: ObjectNode): ApiConnector = factory(httpClient, config)
 }

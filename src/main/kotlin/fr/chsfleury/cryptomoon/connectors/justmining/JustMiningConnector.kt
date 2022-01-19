@@ -11,7 +11,9 @@ class JustMiningConnector(http: HttpClient, config: ObjectNode): ApiConnector {
     private val apiKey = config["apiKey"]?.asText() ?: error("missing just-mining api key")
     private val client = ClientFactory.create(JustMiningClient::class, "https://api.just-mining.com", http)
 
-    override fun extract(): BalanceReport {
+    override val name = "justmining"
+
+    override fun report(): BalanceReport {
         val stakingBalances = stakingBalances()
         val masternodeBalances = masternodeBalances()
         return BalanceReport.of(stakingBalances, masternodeBalances)
