@@ -1,8 +1,8 @@
 package fr.chsfleury.cryptomoon.connectors.kraken
 
+import fr.chsfleury.cryptomoon.infrastructure.connector.kraken.KrakenRequestHelper
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.net.URLEncoder
 
 class KrakenRequestHelperTest {
 

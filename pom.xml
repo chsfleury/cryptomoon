@@ -21,6 +21,9 @@
         <xchange.version>5.0.12</xchange.version>
         <openfeign.version>11.8</openfeign.version>
         <junit.version>5.8.2</junit.version>
+        <exposed.version>0.37.3</exposed.version>
+        <hikaricp.version>5.0.1</hikaricp.version>
+        <mysql.version>8.0.25</mysql.version>
     </properties>
 
     <dependencies>
@@ -57,15 +60,6 @@
             <version>${openfeign.version}</version>
         </dependency>
 
-
-        <!--CRYPTO-->
-        <dependency>
-            <groupId>org.knowm.xchange</groupId>
-            <artifactId>xchange-binance</artifactId>
-            <version>${xchange.version}</version>
-        </dependency>
-
-
         <!--JSON-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -86,16 +80,36 @@
             <version>3.0.5</version>
         </dependency>
 
-        <!--CONFIGURATION-->
+        <!--DATABASE-->
         <dependency>
-            <groupId>com.uchuhimo</groupId>
-            <artifactId>konf-core</artifactId>
-            <version>${konf.version}</version>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-core</artifactId>
+            <version>${exposed.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.uchuhimo</groupId>
-            <artifactId>konf-yaml</artifactId>
-            <version>${konf.version}</version>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-dao</artifactId>
+            <version>${exposed.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-jdbc</artifactId>
+            <version>${exposed.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-java-time</artifactId>
+            <version>${exposed.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql.version}</version>
         </dependency>
 
         <!--LOGGING-->
