@@ -1,21 +1,30 @@
 package fr.chsfleury.cryptomoon.application.io
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder
-import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
-import fr.chsfleury.cryptomoon.domain.model.Balance
-import java.math.BigDecimal
+import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
+import fr.chsfleury.cryptomoon.utils.FiatMap
+import java.util.*
+import kotlin.collections.LinkedHashMap
 
-@JsonPropertyOrder("origin", "balances", "timestamp")
+@JsonPropertyOrder("origin", "total", "assets", "timestamp")
 class AccountJson(
     val origin: String,
-    val balances: Map<String, BigDecimal>,
+    val total: FiatMap,
+    val assets: Map<String, AssetJson>,
     val timestamp: String
 ) {
     companion object {
-        fun of(account: AccountSnapshot): AccountJson = AccountJson(
-            account.origin,
-            account.balances.asSequence().filterNot(Balance::isZero).map { it.currency.symbol to it.amount.stripTrailingZeros() }.sortedBy { it.first }.toMap(LinkedHashMap()),
-            account.timestamp.toString()
-        )
+        fun of(accountStats: AccountStats): AccountJson {
+            val assetStats = accountStats
+                .assetStats
+                .sortedBy { it.currency.symbol }
+                .associateTo(LinkedHashMap()) { it.currency.symbol to AssetJson.of(it) }
+            return AccountJson(
+                accountStats.origin,
+                accountStats.total.clean(),
+                assetStats,
+                accountStats.timestamp.toString()
+            )
+        }
     }
 }

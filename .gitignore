@@ -155,3 +155,4 @@ buildNumber.properties
 # End of https://www.toptal.com/developers/gitignore/api/java,kotlin,maven,intellij+all
 
 config.json
+wallets.json

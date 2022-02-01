@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class CMCListingLatestItem(
+data class CMCQuoteItem(
     val symbol: String,
     @JsonProperty("cmc_rank") val cmcRank: Int,
     val quote: Map<String, CMCQuote>

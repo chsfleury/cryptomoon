@@ -1,5 +1,6 @@
 package fr.chsfleury.cryptomoon.domain.model
 
+import fr.chsfleury.cryptomoon.domain.model.Balance.Companion.toBalance
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -22,8 +23,21 @@ class AccountSnapshot (
                         old?.plus(it.amount) ?: it.amount
                     }
                 }
-            val balanceSet = balanceMap.asSequence().sortedBy { it.key.symbol }.mapTo(LinkedHashSet()) { Balance(it.key, it.value) }
+            val balanceSet = balanceMap.asSequence().sortedBy { it.key.symbol }.mapTo(LinkedHashSet()) { it.toBalance() }
             return AccountSnapshot(origin, balanceSet, timestamp)
+        }
+
+        fun merge(accountSnapshots: Collection<AccountSnapshot>, origin: String? = null): AccountSnapshot? {
+            if (accountSnapshots.isEmpty()) {
+                return null
+            }
+            val finalOrigin = origin ?: accountSnapshots.asSequence()
+                .map(AccountSnapshot::origin)
+                .sorted()
+                .joinToString("~")
+
+            val timestamp = accountSnapshots.minOf(AccountSnapshot::timestamp)
+            return of(finalOrigin, timestamp, accountSnapshots.flatMap(AccountSnapshot::balances))
         }
     }
 

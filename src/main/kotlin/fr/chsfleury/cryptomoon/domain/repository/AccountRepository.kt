@@ -11,5 +11,6 @@ interface AccountRepository {
     fun getKnownCurrencies(): Set<Currency>
 
     fun insert(account: AccountSnapshot)
+    fun supportWrite(): Boolean = true
 
 }

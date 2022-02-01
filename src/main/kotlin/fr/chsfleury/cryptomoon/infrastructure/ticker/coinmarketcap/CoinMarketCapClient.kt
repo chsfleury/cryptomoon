@@ -4,7 +4,8 @@ import feign.Headers
 import feign.Param
 import feign.QueryMap
 import feign.RequestLine
-import fr.chsfleury.cryptomoon.infrastructure.ticker.coinmarketcap.dto.CMCListingLatestItem
+import fr.chsfleury.cryptomoon.infrastructure.ticker.coinmarketcap.dto.CMCLatestQuotesParams
+import fr.chsfleury.cryptomoon.infrastructure.ticker.coinmarketcap.dto.CMCQuoteItem
 import fr.chsfleury.cryptomoon.infrastructure.ticker.coinmarketcap.dto.CMCListingLatestParams
 import fr.chsfleury.cryptomoon.infrastructure.ticker.coinmarketcap.dto.CMCResponse
 
@@ -15,6 +16,8 @@ import fr.chsfleury.cryptomoon.infrastructure.ticker.coinmarketcap.dto.CMCRespon
 interface CoinMarketCapClient {
 
     @RequestLine("GET /v1/cryptocurrency/listings/latest")
-    fun listingLatest(@Param("apiKey") apiKey: String, @QueryMap params: CMCListingLatestParams): CMCResponse<List<CMCListingLatestItem>>
+    fun listingLatest(@Param("apiKey") apiKey: String, @QueryMap params: CMCListingLatestParams): CMCResponse<List<CMCQuoteItem>>
 
+    @RequestLine("GET /v1/cryptocurrency/quotes/latest")
+    fun latestQuotes(@Param("apiKey") apiKey: String, @QueryMap params: CMCLatestQuotesParams): CMCResponse<Map<String, CMCQuoteItem>>
 }

@@ -17,7 +17,7 @@ class TickerController(
         val tickerName = ctx.pathParam("ticker")
         val ticker = tickerService[tickerName] ?: error("unknown ticker")
         val fiat = Fiat.valueOf(ctx.queryParam("fiat") ?: "USD")
-        val quotes = ticker.tick(fiat)
+        val quotes = ticker.tickAll(fiat)
         ctx.json(QuotesJson.of(quotes))
     }
 

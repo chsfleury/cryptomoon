@@ -52,7 +52,7 @@ object ExposedAccountRepository: AccountRepository {
 
         var minTimestamp = Instant.now()
         return transaction {
-            var inClause = origins.joinToString(",") { "'" + it.lowercase() + "'" }
+            var inClause = origins.joinToString(",") { "'$it'" }
             inClause = "($inClause)"
             val balanceList = ALL_BALANCES_QUERY.format(inClause).execAndMap {
                 val minAt = it.getTimestamp("minAt").toInstant()

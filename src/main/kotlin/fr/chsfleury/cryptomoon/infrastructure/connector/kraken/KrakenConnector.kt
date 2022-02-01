@@ -19,7 +19,7 @@ class KrakenConnector(http: HttpClient, config: Map<String, Any>): Connector {
     private val secretKey = config["secretKey"] as? String ?: error("missing kraken secret key")
     private val client = ClientFactory.create(KrakenClient::class, "https://api.kraken.com", http)
 
-    override val name = "kraken"
+    override val name = "KRAKEN"
 
     override fun get(knownCurrencies: Set<Currency>): AccountSnapshot {
         log.info("[{}] Account Snapshot", name)

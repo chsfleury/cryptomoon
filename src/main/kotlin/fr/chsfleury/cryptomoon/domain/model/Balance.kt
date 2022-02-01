@@ -10,6 +10,9 @@ class Balance (
 
     companion object {
         fun Sequence<Balance>.filterBalances(knownCurrencies: Set<Currency>) = filter { !it.isZero() || it.currency in knownCurrencies }.toList()
+        fun Pair<Currency, BigDecimal>.toBalance() = Balance(first, second)
+        fun Map.Entry<Currency, BigDecimal>.toBalance() = Balance(key, value)
+        fun Map<Currency, BigDecimal>.toBalances(): Set<Balance> = entries.mapTo(mutableSetOf()) { it.toBalance() }
     }
 
     override fun equals(other: Any?): Boolean {

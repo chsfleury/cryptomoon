@@ -20,7 +20,7 @@ class BinanceConnector(http: HttpClient, config: Map<String, Any>) : Connector {
     private val secretKey = config["secretKey"] as? String ?: error("missing binance secret key")
     private val client = ClientFactory.create(BinanceClient::class, "https://api.binance.com", http)
 
-    override val name = "binance"
+    override val name = "BINANCE"
 
     override fun get(knownCurrencies: Set<Currency>): AccountSnapshot {
         log.info("[{}] Account Snapshot", name)
