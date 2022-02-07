@@ -24,6 +24,7 @@
         <exposed.version>0.37.3</exposed.version>
         <hikaricp.version>5.0.1</hikaricp.version>
         <mysql.version>8.0.25</mysql.version>
+        <pebble.version>3.1.5</pebble.version>
     </properties>
 
     <dependencies>
@@ -39,6 +40,11 @@
             <groupId>io.javalin</groupId>
             <artifactId>javalin</artifactId>
             <version>${javalin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.pebbletemplates</groupId>
+            <artifactId>pebble</artifactId>
+            <version>${pebble.version}</version>
         </dependency>
 
         <!--HTTP-->

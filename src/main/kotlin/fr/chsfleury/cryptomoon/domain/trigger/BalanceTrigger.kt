@@ -7,7 +7,7 @@ import java.time.Duration
 class BalanceTrigger(
     private val connectorService: ConnectorService,
     private val accountService: AccountService,
-): Trigger("balance", Duration.ofDays(1)) {
+): Trigger("balance", Duration.ofHours(8)) {
 
     override fun execute() {
         val knownCurrencies = accountService.getKnownCurrencies()

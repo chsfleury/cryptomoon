@@ -12,6 +12,8 @@ class AccountSnapshot (
     companion object {
         const val ALL = "ALL"
 
+        fun empty() = AccountSnapshot("", emptySet(), Instant.now())
+
         fun of(origin: String, timestamp: Instant, vararg balances: Collection<Balance>): AccountSnapshot = ofSeq(origin, timestamp, balances.asSequence())
 
         private fun ofSeq(origin: String, timestamp: Instant, sequence: Sequence<Collection<Balance>>): AccountSnapshot {

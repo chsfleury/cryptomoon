@@ -4,6 +4,7 @@ import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.service.AccountService
 import fr.chsfleury.cryptomoon.domain.service.QuoteService
 import fr.chsfleury.cryptomoon.domain.service.TickerService
+import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
 import java.time.Duration
 
 class QuoteTrigger(
@@ -17,8 +18,8 @@ class QuoteTrigger(
 ): Trigger(triggerName, delay, after) {
 
     override fun execute() {
-        tickerService.forEach {
-            quoteService.insert(it.tickKnownCurrencies(accountService.getKnownCurrencies(), fiat))
+        tickerService[Tickers.COINMARKETCAP].run {
+            quoteService.insert(tickKnownCurrencies(accountService.getKnownCurrencies(), fiat))
         }
     }
 

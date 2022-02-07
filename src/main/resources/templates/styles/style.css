@@ -1,0 +1,36 @@
+
+body {
+    background-color: #1C2237;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+}
+
+#sidebar {
+    background-color: #252D47;
+}
+
+#topbar {
+    background-color: #3c4564;
+}
+
+#sidebar a.active {
+    color: #7676FF;
+    border-left: 6px solid #7676FF;
+    padding-top: 12px;
+    padding-left: 28px;
+    width: 7rem;
+    height: 4rem;
+}
+
+#sidebar a {
+    color: #A8ABB5;
+
+}
+
+.card, .table {
+    background-color: #252d47;
+}
+
+.table tr {
+    border-bottom: 3px solid #1C2237;
+}

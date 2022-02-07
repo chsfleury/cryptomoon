@@ -1,31 +1,40 @@
 package fr.chsfleury.cryptomoon.application
 
+import com.mitchellbosecke.pebble.PebbleEngine
+import com.mitchellbosecke.pebble.loader.ClasspathLoader
+import com.mitchellbosecke.pebble.loader.FileLoader
 import com.mysql.cj.jdbc.Driver
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import fr.chsfleury.cryptomoon.application.controller.FiatController
 import fr.chsfleury.cryptomoon.application.controller.PortfolioController
 import fr.chsfleury.cryptomoon.application.controller.TickerController
+import fr.chsfleury.cryptomoon.application.page.DashboardPage
+import fr.chsfleury.cryptomoon.application.pebble.CryptomoonExtension
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.service.*
+import fr.chsfleury.cryptomoon.domain.ticker.ATHTicker
+import fr.chsfleury.cryptomoon.domain.trigger.ATHTrigger
 import fr.chsfleury.cryptomoon.domain.trigger.BalanceTrigger
 import fr.chsfleury.cryptomoon.domain.trigger.QuoteTrigger
 import fr.chsfleury.cryptomoon.infrastructure.configuration.LocalFileConfiguration
+import fr.chsfleury.cryptomoon.infrastructure.entities.ATHEntity
 import fr.chsfleury.cryptomoon.infrastructure.entities.BalanceEntity
 import fr.chsfleury.cryptomoon.infrastructure.entities.QuoteEntity
 import fr.chsfleury.cryptomoon.infrastructure.entities.TriggerEntity
-import fr.chsfleury.cryptomoon.infrastructure.repository.exposed.ExposedAccountRepository
-import fr.chsfleury.cryptomoon.infrastructure.repository.exposed.ExposedFiatPairRepository
-import fr.chsfleury.cryptomoon.infrastructure.repository.exposed.ExposedQuoteRepository
-import fr.chsfleury.cryptomoon.infrastructure.repository.exposed.ExposedTriggerRepository
+import fr.chsfleury.cryptomoon.infrastructure.repository.exposed.*
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileAccountRepository
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileConnectorRepository
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFilePortfolioRepository
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileTickerRepository
+import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
 import fr.chsfleury.cryptomoon.infrastructure.wallet.LocalWalletsFile
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
 import io.javalin.Javalin
+import io.javalin.http.staticfiles.Location
+import io.javalin.plugin.rendering.JavalinRenderer
+import io.javalin.plugin.rendering.template.JavalinPebble
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.StdOutSqlLogger
@@ -48,7 +57,7 @@ object Cryptomoon: Logging {
         transaction {
             addLogger(StdOutSqlLogger)
 
-            SchemaUtils.create(BalanceEntity, TriggerEntity, QuoteEntity)
+            SchemaUtils.create(BalanceEntity, TriggerEntity, QuoteEntity, ATHEntity)
         }
 
         // SERVICES
@@ -56,14 +65,27 @@ object Cryptomoon: Logging {
         val quoteService = QuoteService(ExposedQuoteRepository, ExposedFiatPairRepository)
         val connectorService = ConnectorService(LocalFileConnectorRepository)
         val accountService = AccountService(quoteService, listOf(ExposedAccountRepository, LocalFileAccountRepository))
-        val portfolioService = PortfolioService(LocalFilePortfolioRepository, connectorService, accountService)
+        val athService = ATHService(ExposedATHRepository)
+        val portfolioService = PortfolioService(LocalFilePortfolioRepository, connectorService, quoteService, athService, accountService)
 
         // CONTROLLERS
         val portfolioController = PortfolioController(portfolioService, accountService, quoteService)
         val tickerController = TickerController(tickerService)
         val fiatController = FiatController(quoteService)
 
-        Javalin.create().start(port)
+        // PAGES
+        configureRenderer()
+        val dashboardPage = DashboardPage(portfolioService, accountService)
+
+        Javalin.create{ config ->
+            config.addStaticFiles { staticFiles ->
+                staticFiles.hostedPath = "/assets"
+                staticFiles.directory = LocalFileConfiguration["assetsPath"]
+                staticFiles.location = Location.EXTERNAL
+                staticFiles.precompress = false
+            }
+        }.start(port)
+            .get("/", dashboardPage::getDashboard)
             .get("/api/v1/portfolios", portfolioController::getPortfolioNames)
             .get("/api/v1/portfolios/{portfolio}", portfolioController::getPortfolio)
             .get("/api/v1/portfolios/{portfolio}/accounts", portfolioController::getPortfolioAccountNames)
@@ -77,9 +99,15 @@ object Cryptomoon: Logging {
         val balanceTrigger = BalanceTrigger(connectorService, accountService)
         val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote")
         val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
+        val athTrigger = ATHTrigger(
+            tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
+            athService,
+            accountService
+        )
+
         TriggerService(
             ExposedTriggerRepository,
-            balanceTrigger, usdQuoteTrigger, eurQuoteTrigger
+            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger
         ).start()
 
         Runtime.getRuntime().addShutdownHook(Thread { LocalWalletsFile.stopWatch() })
@@ -97,6 +125,32 @@ object Cryptomoon: Logging {
             }
         }
         return HikariDataSource(config)
+    }
+
+    private fun configureRenderer() {
+        val templatesPath: String = LocalFileConfiguration["templatesPath"]
+        val loader = if (templatesPath == "default") {
+            log.info("use classpath loader")
+            ClasspathLoader().apply {
+                prefix = "./templates"
+            }
+        } else {
+            log.info("use file loader")
+            FileLoader().apply {
+                prefix = templatesPath
+            }
+        }
+
+        val engine = PebbleEngine.Builder()
+            .cacheActive(false)
+            .loader(loader)
+            .strictVariables(false)
+            .extension(CryptomoonExtension)
+            .build()
+
+        JavalinPebble.configure(engine)
+
+        JavalinRenderer.register(JavalinPebble, ".html")
     }
 
 }

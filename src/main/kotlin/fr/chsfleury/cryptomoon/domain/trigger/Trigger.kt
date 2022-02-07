@@ -21,6 +21,11 @@ abstract class Trigger(
         }
     }
 
-    private fun isExpired(triggerRepository: TriggerRepository, now: Instant): Boolean = triggerRepository.lastTriggered(triggerName)?.plus(delay)?.isBefore(now) ?: true
+    private fun isExpired(triggerRepository: TriggerRepository, now: Instant): Boolean = triggerRepository
+        .lastTriggered(triggerName)
+        ?.plus(delay)
+        ?.isBefore(now)
+        ?: true
+
     private fun updateTrigger(triggerRepository: TriggerRepository, now: Instant) = triggerRepository.update(triggerName, now)
 }

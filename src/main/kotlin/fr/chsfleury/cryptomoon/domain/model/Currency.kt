@@ -3,7 +3,8 @@ package fr.chsfleury.cryptomoon.domain.model
 class Currency (
     val symbol: String,
     val fiat: Boolean,
-    val stable: Boolean
+    val stable: Boolean,
+    val logoUrl: String
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

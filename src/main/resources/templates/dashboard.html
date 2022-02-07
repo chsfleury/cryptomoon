@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Portfolios</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            {% include "styles/style.css" %}
+        </style>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <nav id="sidebar" class="fixed inset-y-0 left-0 w-28 pt-3 flex flex-col items-center justify-between gap-y-8">
+            <div class="flex flex-col items-center gap-y-8">
+                <img src="/assets/cryptomoon.png" alt="Cryptomoon" width="56" height="55"/>
+                <a href="/" class="active w-28 h-16">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </a>
+
+                <a href="/">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                </a>
+
+                <a href="/">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4m9-1.5a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </a>
+            </div>
+
+            <a href="/" class="h-16">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+            </a>
+        </nav>
+
+        <header id="topbar" class="fixed left-28 right-0 top-0 h-20 flex flex-row items-center py-4 px-8">
+            searchbar
+        </header>
+
+        <main class="ml-28 mt-20 p-8">
+            <h1 class="text-4xl mb-3 font-semibold">Portfolio{% if portfolios|length > 1 %}s{% endif %}</h1>
+
+            {% for portfolio in portfolios %}
+            {% set mergedStats = mergedMap.get(portfolio.name) %}
+            <section>
+                {% if portfolios|length > 1 %}
+                <h2 class="text-3xl mb-2 font-semibold">{{ portfolio.name }}</h2>
+                {% endif %}
+
+                <div class="flex flex-wrap gap-8">
+                    <div class="card w-64 rounded-xl p-5">
+                        <h3 class="text-xl mb-2">Total Balance</h3>
+                        <span class="text-3xl font-semibold">{{ portfolio.total | fiatMap('EUR') }}</span>
+                    </div>
+                    <div class="card w-64 rounded-xl p-5">
+                        <h3 class="text-xl mb-2">ATH Balance</h3>
+                        <span class="text-3xl font-semibold">{{ portfolio.athTotal | fiatMap('EUR') }}</span>
+                    </div>
+                    {% for account in portfolio.accountStats %}
+                    <div class="card w-64 rounded-xl p-5">
+                        <h3 class="text-xl mb-2 capitalize">{{ account.origin | lower | title }}</h3>
+                        <span class="text-3xl font-semibold">{{ account.total | fiatMap('EUR') }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <table class="table mt-8 table-fixed rounded-xl">
+                    <thead>
+                        <tr>
+                            <th class="text-left p-4 pl-6 w-48">Currency</th>
+                            <th class="text-left p-4 pl-6 w-48">Price</th>
+                            <th class="text-left p-4 pl-6 w-48">Balance</th>
+                            <th class="text-left p-4 pl-6 w-48">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in mergedStats.assetsByValueDesc %}
+                        <tr class="text-2xl">
+                            <td class="p-6"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
+                            <td class="p-6">{{ asset.price | fiatMap('USD', false) }}</td>
+                            <td class="p-6">{{ asset.balance | balance }}</td>
+                            <td class="p-6">{{ asset.value | fiatMap('EUR') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+            </section>
+            {% endfor %}
+
+        </main>
+    </body>
+</html>

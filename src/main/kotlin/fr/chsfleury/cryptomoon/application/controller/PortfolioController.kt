@@ -18,7 +18,7 @@ class PortfolioController(
         val portfolioName = ctx.pathParam("portfolio")
         val mergedParam = ctx.queryParam("merged")
         val merged = mergedParam != null && (mergedParam.isEmpty() || mergedParam == "true")
-        val portfolio = portfolioService.getPorfolio(portfolioName, merged)
+        val portfolio = portfolioService.getPortfolio(portfolioName, merged)
         val portfolioStats = portfolioService.computeStats(portfolio, COINMARKETCAP)
         ctx.json(PortfolioJson.of(portfolioStats))
     }
@@ -35,7 +35,7 @@ class PortfolioController(
     fun getPortfolioAccount(ctx: Context) {
         val portfolioName = ctx.pathParam("portfolio")
         val origin = ctx.pathParam("origin")
-        val account = portfolioService.getPorfolioAccount(portfolioName, origin) ?: error("unknown origin")
+        val account = portfolioService.getPortfolioAccount(portfolioName, origin) ?: error("unknown origin")
         val accountStats = accountService.computeStats(account, COINMARKETCAP)
         ctx.json(AccountJson.of(accountStats))
     }
