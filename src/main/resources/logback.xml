@@ -13,4 +13,5 @@
   </root>
 
   <logger name="fr.chsfleury.cryptomoon" level="info" />
+  <logger name="fr.chsfleury.cryptomoon.domain.service" level="debug" />
 </configuration>

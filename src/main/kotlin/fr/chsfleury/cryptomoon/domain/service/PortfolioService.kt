@@ -1,5 +1,6 @@
 package fr.chsfleury.cryptomoon.domain.service
 
+import fr.chsfleury.cryptomoon.domain.listener.AccountUpdateListener
 import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.Portfolio
@@ -9,6 +10,8 @@ import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.domain.repository.PortfolioRepository
 import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
 import fr.chsfleury.cryptomoon.utils.FiatMap
+import fr.chsfleury.cryptomoon.utils.Logging
+import fr.chsfleury.cryptomoon.utils.logger
 import java.math.BigDecimal
 
 class PortfolioService(
@@ -17,8 +20,12 @@ class PortfolioService(
     private val quoteService: QuoteService,
     private val athService: ATHService,
     private val accountService: AccountService
-) {
+): AccountUpdateListener, Logging {
+    private val log = logger()
+
     private val portfolioConfiguration: PortfolioConfiguration
+    private val portfolioCache = mutableMapOf<Pair<String, Boolean>, Portfolio>()
+    private val portfolioStatsCache = mutableMapOf<Pair<Portfolio, Tickers>, PortfolioStats>()
 
     init {
         portfolioConfiguration = portfolioRepository.loadConfiguration() ?: defaultPortfolioConfiguration(connectorService)
@@ -29,16 +36,19 @@ class PortfolioService(
     }
 
     fun getPortfolio(name: String, merged: Boolean): Portfolio {
-        val portfolioAccountNames = portfolioConfiguration[name] ?: error("unknown portfolio")
-        val accounts = if (merged) {
-            setOf(accountService.mergedAccounts(portfolioAccountNames))
-        } else {
-            accountService.allAccounts()
+        return portfolioCache.computeIfAbsent(name to merged) { (n, m) ->
+            log.debug("retrieving {} portfolio data", name)
+            val portfolioAccountNames = portfolioConfiguration[n] ?: error("unknown portfolio")
+            val accounts = if (m) {
+                setOf(accountService.mergedAccounts(portfolioAccountNames))
+            } else {
+                accountService.allAccounts()
+            }
+            val filteredAccounts = accounts.asSequence()
+                .filter { it.origin == AccountSnapshot.ALL || (it.origin in portfolioAccountNames) || compositeNameBelongToPortfolio(it.origin, portfolioAccountNames) }
+                .toSet()
+            Portfolio(n, filteredAccounts)
         }
-        val filteredAccounts = accounts.asSequence()
-            .filter { it.origin == AccountSnapshot.ALL || (it.origin in portfolioAccountNames) || compositeNameBelongToPortfolio(it.origin, portfolioAccountNames) }
-            .toSet()
-        return Portfolio(name, filteredAccounts)
     }
 
     fun getPortfolioAccount(portfolioName: String, origin: String): AccountSnapshot? {
@@ -59,20 +69,22 @@ class PortfolioService(
     }
 
     fun computeStats(portfolio: Portfolio, ticker: Tickers): PortfolioStats {
-        val total = FiatMap()
-        val accountStatsSet = portfolio.accounts.mapTo(mutableSetOf()) { accountService.computeStats(it, ticker) }
-        accountStatsSet.forEach { total += it.total }
-        val athTotalInUSD = accountStatsSet.asSequence()
-            .flatMap(AccountStats::assetStats)
-            .map { assetStats -> assetStats.balance * (athService[assetStats.currency] ?: BigDecimal.ZERO) }
-            .sumOf { it }
-        val athFiatMap = FiatMap()
-        athFiatMap[Fiat.USD] = athTotalInUSD
-        quoteService.usdToEur()?.also { usdToEur ->
-            athFiatMap[Fiat.EUR] = athTotalInUSD * usdToEur
+        return portfolioStatsCache.computeIfAbsent(portfolio to ticker) {
+            log.debug("computing {} portfolio stats", portfolio.name)
+            val total = FiatMap()
+            val accountStatsSet = portfolio.accounts.mapTo(mutableSetOf()) { accountService.computeStats(it, ticker) }
+            accountStatsSet.forEach { total += it.total }
+            val athTotalInUSD = accountStatsSet.asSequence()
+                .flatMap(AccountStats::assetStats)
+                .map { assetStats -> assetStats.balance * (athService[assetStats.currency] ?: BigDecimal.ZERO) }
+                .sumOf { it }
+            val athFiatMap = FiatMap()
+            athFiatMap[Fiat.USD] = athTotalInUSD
+            quoteService.usdToEur()?.also { usdToEur ->
+                athFiatMap[Fiat.EUR] = athTotalInUSD * usdToEur
+            }
+            PortfolioStats(portfolio.name, total, athFiatMap, accountStatsSet)
         }
-
-        return PortfolioStats(portfolio.name, total, athFiatMap, accountStatsSet)
     }
 
     private fun defaultPortfolioConfiguration(connectorService: ConnectorService): PortfolioConfiguration {
@@ -83,4 +95,17 @@ class PortfolioService(
     private fun compositeNameBelongToPortfolio(accountSnapshotName: String, portfolioAccountNames: Collection<String>) = accountSnapshotName
             .splitToSequence('~')
             .all(portfolioAccountNames::contains)
+
+    override fun onAccountUpdate(accounts: Collection<String>) {
+        val obsoletePortfolios = portfolioConfiguration.portfolioForAccount(accounts)
+        log.debug("remove cache for portfolio: {}", obsoletePortfolios)
+
+        portfolioCache.keys
+            .filter { it.first in obsoletePortfolios }
+            .forEach { portfolioCache.remove(it) }
+
+        portfolioStatsCache.keys
+            .filter { it.first.name in obsoletePortfolios }
+            .forEach { portfolioStatsCache.remove(it) }
+    }
 }

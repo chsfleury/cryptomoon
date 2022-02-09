@@ -4,6 +4,8 @@
         <meta charset="UTF-8">
         <title>Portfolios</title>
         <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="https://code.highcharts.com/themes/brand-dark.js"></script>
         <style>
             {% include "styles/style.css" %}
         </style>
@@ -73,16 +75,17 @@
                     {% endfor %}
                 </div>
 
-                <table class="table mt-8 table-fixed rounded-xl">
-                    <thead>
+                <div class="grid grid-cols-2 gap-8 mt-8 ">
+                    <table class="table table-fixed rounded-xl">
+                        <thead>
                         <tr>
                             <th class="text-left p-4 pl-6 w-48">Currency</th>
                             <th class="text-left p-4 pl-6 w-48">Price</th>
                             <th class="text-left p-4 pl-6 w-48">Balance</th>
                             <th class="text-left p-4 pl-6 w-48">Value</th>
                         </tr>
-                    </thead>
-                    <tbody>
+                        </thead>
+                        <tbody>
                         {% for asset in mergedStats.assetsByValueDesc %}
                         <tr class="text-2xl">
                             <td class="p-6"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
@@ -91,9 +94,64 @@
                             <td class="p-6">{{ asset.value | fiatMap('EUR') }}</td>
                         </tr>
                         {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
 
+                    {% set distribution = currencyDistribution.get(portfolio.name) %}
+                    <div>
+                        <div id="valueDistribution_{{ portfolio.name }}" class="rounded-xl"></div>
+                        <script type="text/javascript">
+                            Highcharts.chart('valueDistribution_{{ portfolio.name }}', {
+                                chart: {
+                                    plotBackgroundColor: null,
+                                    plotBorderWidth: null,
+                                    plotShadow: false,
+                                    type: 'pie',
+                                    backgroundColor: "#252d47",
+                                    height: '60%'
+                                },
+                                title: {
+                                    text: 'Value Distribution',
+                                    style: {
+                                        fontFamily: 'Montserrat'
+                                    },
+                                    margin: 50,
+                                    y: 30
+                                },
+                                tooltip: {
+                                    pointFormat: 'Value: <b>$ {point.y:.2f}</b>'
+                                },
+                                accessibility: {
+                                    point: {
+                                        valueSuffix: '%'
+                                    }
+                                },
+                                plotOptions: {
+                                    pie: {
+                                        allowPointSelect: true,
+                                        cursor: 'pointer',
+                                        dataLabels: {
+                                            enabled: true,
+                                            format: '<b>{point.name}</b>: {point.percentage:.1f} %'
+                                        }
+                                    }
+                                },
+                                series: [{
+                                    name: 'Currencies',
+                                    colorByPoint: true,
+                                    data: [
+                                        {% for point in distribution %}
+                                        {
+                                            name: '{{ point.name }}',
+                                            y: {{ point.y }}
+                                        },
+                                        {% endfor %}
+                                    ]
+                                }]
+                            });
+                        </script>
+                    </div>
+                </div>
             </section>
             {% endfor %}
 

@@ -1,5 +1,6 @@
 package fr.chsfleury.cryptomoon.application.page
 
+import fr.chsfleury.cryptomoon.application.highcharts.Highcharts
 import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
 import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
 import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
@@ -23,9 +24,11 @@ class DashboardPage(
             val allAccountSnapshot = AccountSnapshot.merge(portfolio.accounts, AccountSnapshot.ALL) ?: AccountSnapshot.empty()
             portfolio.name to accountService.computeStats(allAccountSnapshot, Tickers.COINMARKETCAP)
         }
+        val currencyDistribution = mergedStats.mapValues { Highcharts.toData(it.value.assetsByValueDesc) }
         ctx.render("dashboard.html", mapOf(
             "portfolios" to portfolioStats,
-            "mergedMap" to mergedStats
+            "mergedMap" to mergedStats,
+            "currencyDistribution" to currencyDistribution
         ))
     }
 

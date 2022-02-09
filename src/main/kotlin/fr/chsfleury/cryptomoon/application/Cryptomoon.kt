@@ -110,6 +110,10 @@ object Cryptomoon: Logging {
             balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger
         ).start()
 
+        // LISTENERS
+        accountService.addListener(portfolioService)
+        quoteService.addListener(accountService)
+
         Runtime.getRuntime().addShutdownHook(Thread { LocalWalletsFile.stopWatch() })
     }
 

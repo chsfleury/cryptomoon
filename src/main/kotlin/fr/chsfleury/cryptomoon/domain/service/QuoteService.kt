@@ -1,22 +1,29 @@
 package fr.chsfleury.cryptomoon.domain.service
 
+import fr.chsfleury.cryptomoon.domain.listener.QuoteUpdateListener
+import fr.chsfleury.cryptomoon.domain.model.Currency
+import fr.chsfleury.cryptomoon.domain.model.Quote
 import fr.chsfleury.cryptomoon.domain.model.Quotes
 import fr.chsfleury.cryptomoon.domain.repository.FiatPairRepository
 import fr.chsfleury.cryptomoon.domain.repository.QuoteRepository
 import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
+import fr.chsfleury.cryptomoon.utils.Logging
+import fr.chsfleury.cryptomoon.utils.logger
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import kotlin.math.max
 import kotlin.math.min
 
 class QuoteService(
     private val quoteRepository: QuoteRepository,
     private val fiatPairRepository: FiatPairRepository,
-) {
+): Logging {
+    private val log = logger()
     private val lastQuotes = mutableMapOf<String, Quotes>()
     private val lastFiatPairs = mutableListOf<Pair<Instant, BigDecimal>>()
+
+    private val quoteUpdateListeners = mutableSetOf<QuoteUpdateListener>()
 
     init {
         Tickers.values().forEach { ticker ->
@@ -60,10 +67,21 @@ class QuoteService(
 
     fun insert(quotes: Quotes) {
         quoteRepository.insert(quotes)
+        notifyQuoteUpdate(quotes)
+    }
 
+    fun addListener(listener: QuoteUpdateListener) {
+        quoteUpdateListeners.add(listener)
+    }
+
+    fun notifyQuoteUpdate(quotes: Quotes) {
         val latestQuotes = lastQuotes[quotes.origin]
         if (latestQuotes == null || latestQuotes.timestamp.isBefore(quotes.timestamp)) {
             lastQuotes[quotes.origin] = quotes
         }
+
+        val currencies = quotes.quoteList.asSequence().map(Quote::currency).toSet()
+        log.debug("notify listeners of {} quote update", currencies)
+        quoteUpdateListeners.forEach { it.onQuoteUpdate(currencies) }
     }
 }

@@ -5,4 +5,14 @@ class PortfolioConfiguration(
 ) {
     fun names(): Set<String> = portfolios.keys
     operator fun get(name: String): Set<String>? = portfolios[name]
+
+    fun portfolioForAccount(accounts: Collection<String>): Set<String> {
+        return accounts.asSequence()
+            .flatMap { accountName ->
+                portfolios.asSequence()
+                    .filter { accountName in it.value }
+                    .map { it.key }
+            }
+            .toSet()
+    }
 }
