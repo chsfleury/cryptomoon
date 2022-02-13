@@ -1,7 +1,10 @@
 package fr.chsfleury.cryptomoon.application.controller
 
 import fr.chsfleury.cryptomoon.application.io.AccountJson
+import fr.chsfleury.cryptomoon.application.io.PortfolioHistoryJson
 import fr.chsfleury.cryptomoon.application.io.PortfolioJson
+import fr.chsfleury.cryptomoon.domain.model.Fiat
+import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.service.AccountService
 import fr.chsfleury.cryptomoon.domain.service.PortfolioService
 import fr.chsfleury.cryptomoon.domain.service.QuoteService
@@ -40,4 +43,16 @@ class PortfolioController(
         ctx.json(AccountJson.of(accountStats))
     }
 
+    fun getPortfolioHistory(ctx: Context) {
+        val portfolioValueType = PortfolioValueType.valueOf(ctx.pathParam("valueType").uppercase())
+        getPortfolioHistory(portfolioValueType, ctx)
+    }
+
+    fun getPortfolioHistory(portfolioValueType: PortfolioValueType, ctx: Context) {
+        val portfolioName = ctx.pathParam("portfolio")
+        val days = ctx.queryParam("days")?.toIntOrNull() ?: 7
+        val fiat = ctx.queryParam("fiat")?.let { Fiat.valueOf(it.uppercase()) } ?: Fiat.USD
+        val history = portfolioService.getHistory(portfolioName, portfolioValueType, fiat, days)
+        ctx.json(PortfolioHistoryJson.of(history))
+    }
 }

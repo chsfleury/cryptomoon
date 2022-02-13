@@ -12,16 +12,15 @@ import fr.chsfleury.cryptomoon.application.controller.TickerController
 import fr.chsfleury.cryptomoon.application.page.DashboardPage
 import fr.chsfleury.cryptomoon.application.pebble.CryptomoonExtension
 import fr.chsfleury.cryptomoon.domain.model.Fiat
+import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.service.*
 import fr.chsfleury.cryptomoon.domain.ticker.ATHTicker
 import fr.chsfleury.cryptomoon.domain.trigger.ATHTrigger
 import fr.chsfleury.cryptomoon.domain.trigger.BalanceTrigger
+import fr.chsfleury.cryptomoon.domain.trigger.PortfolioValueTrigger
 import fr.chsfleury.cryptomoon.domain.trigger.QuoteTrigger
 import fr.chsfleury.cryptomoon.infrastructure.configuration.LocalFileConfiguration
-import fr.chsfleury.cryptomoon.infrastructure.entities.ATHEntity
-import fr.chsfleury.cryptomoon.infrastructure.entities.BalanceEntity
-import fr.chsfleury.cryptomoon.infrastructure.entities.QuoteEntity
-import fr.chsfleury.cryptomoon.infrastructure.entities.TriggerEntity
+import fr.chsfleury.cryptomoon.infrastructure.entities.*
 import fr.chsfleury.cryptomoon.infrastructure.repository.exposed.*
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileAccountRepository
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileConnectorRepository
@@ -57,7 +56,7 @@ object Cryptomoon: Logging {
         transaction {
             addLogger(StdOutSqlLogger)
 
-            SchemaUtils.create(BalanceEntity, TriggerEntity, QuoteEntity, ATHEntity)
+            SchemaUtils.create(BalanceEntity, TriggerEntity, QuoteEntity, ATHEntity, PortfolioHistoryEntity)
         }
 
         // SERVICES
@@ -66,7 +65,7 @@ object Cryptomoon: Logging {
         val connectorService = ConnectorService(LocalFileConnectorRepository)
         val accountService = AccountService(quoteService, listOf(ExposedAccountRepository, LocalFileAccountRepository))
         val athService = ATHService(ExposedATHRepository)
-        val portfolioService = PortfolioService(LocalFilePortfolioRepository, connectorService, quoteService, athService, accountService)
+        val portfolioService = PortfolioService(LocalFilePortfolioRepository, ExposedPortfolioHistoryRepository, connectorService, quoteService, athService, accountService)
 
         // CONTROLLERS
         val portfolioController = PortfolioController(portfolioService, accountService, quoteService)
@@ -90,6 +89,8 @@ object Cryptomoon: Logging {
             .get("/api/v1/portfolios/{portfolio}", portfolioController::getPortfolio)
             .get("/api/v1/portfolios/{portfolio}/accounts", portfolioController::getPortfolioAccountNames)
             .get("/api/v1/portfolios/{portfolio}/accounts/{origin}", portfolioController::getPortfolioAccount)
+            .get("/api/v1/portfolios/{portfolio}/history") { ctx -> portfolioController.getPortfolioHistory(PortfolioValueType.CURRENT, ctx) }
+            .get("/api/v1/portfolios/{portfolio}/history/{valueType}", portfolioController::getPortfolioHistory)
             .get("/api/v1/tickers", tickerController::getTickerNames)
             .get("/api/v1/tickers/{ticker}", tickerController::getTick)
             .get("/api/v1/fiats", fiatController::getFiatPair)
@@ -104,10 +105,11 @@ object Cryptomoon: Logging {
             athService,
             accountService
         )
+        val portfolioValueTrigger = PortfolioValueTrigger(portfolioService)
 
         TriggerService(
             ExposedTriggerRepository,
-            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger
+            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger
         ).start()
 
         // LISTENERS
