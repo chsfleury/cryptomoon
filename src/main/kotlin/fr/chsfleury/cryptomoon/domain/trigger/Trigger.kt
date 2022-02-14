@@ -1,31 +1,28 @@
 package fr.chsfleury.cryptomoon.domain.trigger
 
-import fr.chsfleury.cryptomoon.domain.repository.TriggerRepository
 import java.time.Duration
 import java.time.Instant
 
 abstract class Trigger(
-    private val triggerName: String,
+    val triggerName: String,
     val delay: Duration,
     private val after: List<Trigger> = emptyList()
 ) {
     abstract fun execute()
 
-    fun trigger(triggerRepository: TriggerRepository, now: Instant, force: Boolean = false) {
-        if (force || isExpired(triggerRepository, now)) {
+    fun trigger(triggered: Map<String, Instant>, now: Instant, force: Boolean = false): Boolean {
+        if (force || isExpired(triggered, now)) {
             execute()
-            updateTrigger(triggerRepository, now)
             after.forEach { next ->
-                next.trigger(triggerRepository, now, true)
+                next.trigger(triggered, now, true)
             }
+            return true
         }
+        return false
     }
 
-    private fun isExpired(triggerRepository: TriggerRepository, now: Instant): Boolean = triggerRepository
-        .lastTriggered(triggerName)
+    private fun isExpired(triggered: Map<String, Instant>, now: Instant): Boolean = triggered[triggerName]
         ?.plus(delay)
         ?.isBefore(now)
         ?: true
-
-    private fun updateTrigger(triggerRepository: TriggerRepository, now: Instant) = triggerRepository.update(triggerName, now)
 }

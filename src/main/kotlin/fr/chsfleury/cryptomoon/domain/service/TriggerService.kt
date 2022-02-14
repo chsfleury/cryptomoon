@@ -29,7 +29,19 @@ class TriggerService(
     fun start(): TriggerService {
         timer = timer("main", true, 0L, minDelay.toMillis()) {
             val now = Instant.now()
-            triggers.forEach { it.trigger(triggerRepository, now) }
+            val triggeredAt = triggerRepository.lastTriggered()
+            val triggerExecuted = triggers.asSequence()
+                .filter { it.trigger(triggeredAt, now, false) }
+                .map { it.triggerName }
+                .partition { it in triggeredAt.keys }
+
+            if (triggerExecuted.first.isNotEmpty()) {
+                triggerRepository.update(triggerExecuted.first, now)
+            }
+
+            if (triggerExecuted.second.isNotEmpty()) {
+                triggerRepository.insert(triggerExecuted.second, now)
+            }
         }
         return this
     }

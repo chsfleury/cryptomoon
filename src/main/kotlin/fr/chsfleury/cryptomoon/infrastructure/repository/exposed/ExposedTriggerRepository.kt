@@ -2,13 +2,20 @@ package fr.chsfleury.cryptomoon.infrastructure.repository.exposed
 
 import fr.chsfleury.cryptomoon.domain.repository.TriggerRepository
 import fr.chsfleury.cryptomoon.infrastructure.entities.TriggerEntity
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
-import org.jetbrains.exposed.sql.update
 import java.time.Instant
 
 object ExposedTriggerRepository: TriggerRepository {
+
+    override fun lastTriggered(): Map<String, Instant> {
+        return transaction {
+            TriggerEntity.selectAll()
+                .asSequence()
+                .map { row -> row[TriggerEntity.name] to row[TriggerEntity.at] }
+                .toMap()
+        }
+    }
 
     override fun lastTriggered(name: String): Instant? {
         var lastTriggered: Instant? = null
@@ -23,7 +30,7 @@ object ExposedTriggerRepository: TriggerRepository {
         return lastTriggered
     }
 
-    override fun update(name: String, now: Instant) {
+    override fun upsert(name: String, now: Instant) {
         transaction {
             val lastTriggered = TriggerEntity
                 .select { TriggerEntity.name eq name }
@@ -38,6 +45,23 @@ object ExposedTriggerRepository: TriggerRepository {
                 TriggerEntity.update({ TriggerEntity.name eq name }) {
                     it[at] = now
                 }
+            }
+        }
+    }
+
+    override fun update(names: Collection<String>, now: Instant) {
+        transaction {
+            TriggerEntity.update({ TriggerEntity.name inList names }) {
+                it[at] = now
+            }
+        }
+    }
+
+    override fun insert(names: Collection<String>, now: Instant) {
+        transaction {
+            TriggerEntity.batchInsert(names) {
+                this[TriggerEntity.name] = it
+                this[TriggerEntity.at] = now
             }
         }
     }
