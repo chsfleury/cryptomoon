@@ -31,6 +31,7 @@ import fr.chsfleury.cryptomoon.infrastructure.wallet.LocalWalletsFile
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
 import io.javalin.Javalin
+import io.javalin.core.JavalinConfig
 import io.javalin.http.staticfiles.Location
 import io.javalin.plugin.rendering.JavalinRenderer
 import io.javalin.plugin.rendering.template.JavalinPebble
@@ -55,7 +56,6 @@ object Cryptomoon: Logging {
 
         transaction {
             addLogger(StdOutSqlLogger)
-
             SchemaUtils.create(BalanceEntity, TriggerEntity, QuoteEntity, ATHEntity, PortfolioHistoryEntity)
         }
 
@@ -76,14 +76,7 @@ object Cryptomoon: Logging {
         configureRenderer()
         val dashboardPage = DashboardPage(portfolioService, accountService)
 
-        Javalin.create{ config ->
-            config.addStaticFiles { staticFiles ->
-                staticFiles.hostedPath = "/assets"
-                staticFiles.directory = LocalFileConfiguration["assetsPath"]
-                staticFiles.location = Location.EXTERNAL
-                staticFiles.precompress = false
-            }
-        }.start(port)
+        Javalin.create(this::configureJavalin).start(port)
             .get("/", dashboardPage::getDashboard)
             .get("/api/v1/portfolios", portfolioController::getPortfolioNames)
             .get("/api/v1/portfolios/{portfolio}", portfolioController::getPortfolio)
@@ -100,16 +93,17 @@ object Cryptomoon: Logging {
         val balanceTrigger = BalanceTrigger(connectorService, accountService)
         val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote")
         val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
+        val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
+        val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
         val athTrigger = ATHTrigger(
             tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
             athService,
             accountService
         )
-        val portfolioValueTrigger = PortfolioValueTrigger(portfolioService)
 
         TriggerService(
             ExposedTriggerRepository,
-            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger
+            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger, athPortfolioValueTrigger
         ).start()
 
         // LISTENERS
@@ -121,42 +115,72 @@ object Cryptomoon: Logging {
 
     private fun createDatasource(): DataSource {
         val datasourceConfiguration: Map<String, String> = LocalFileConfiguration["datasource"] ?: error("missing datasource configuration")
+        val user = datasourceConfiguration["username"] ?: error("missing datasource username")
+        val url = datasourceConfiguration["url"] ?: error("missing datasource url")
         val config = HikariConfig().apply {
-            jdbcUrl = datasourceConfiguration["url"] ?: error("missing datasource url")
-            username = datasourceConfiguration["username"] ?: error("missing datasource username")
+            jdbcUrl = url
+            username = user
             password = datasourceConfiguration["password"] ?: error("missing datasource password")
             driverClassName = when(datasourceConfiguration["type"] ?: error("missing datasource type")) {
                 "MYSQL" -> Driver::class.java.name
                 else -> error("unsupported datasource")
             }
         }
+        log.info("Datasource: user={}, url={}", user, url)
         return HikariDataSource(config)
     }
 
+    private fun configureJavalin(config: JavalinConfig) {
+        config.showJavalinBanner = false;
+
+        val assetPath = LocalFileConfiguration["assetsPath"] ?: "default"
+        if (assetPath == "default") {
+            log.info("load assets from classpath")
+            config.addStaticFiles { staticFiles ->
+                staticFiles.hostedPath = "/assets"
+                staticFiles.directory = "/assets"
+                staticFiles.location = Location.CLASSPATH
+                staticFiles.precompress = false
+            }
+        } else {
+            log.info("load assets from {}", assetPath)
+            config.addStaticFiles { staticFiles ->
+                staticFiles.hostedPath = "/assets"
+                staticFiles.directory = assetPath
+                staticFiles.location = Location.EXTERNAL
+                staticFiles.precompress = false
+            }
+        }
+    }
+
     private fun configureRenderer() {
-        val templatesPath: String = LocalFileConfiguration["templatesPath"]
+        val templatesPath: String = LocalFileConfiguration["templatesPath"] ?: "default"
         val loader = if (templatesPath == "default") {
-            log.info("use classpath loader")
+            log.info("load templates from classpath")
             ClasspathLoader().apply {
                 prefix = "./templates"
             }
         } else {
-            log.info("use file loader")
+            log.info("load assets from {}", templatesPath)
             FileLoader().apply {
                 prefix = templatesPath
             }
         }
 
+        val templateCached = "true" != System.getProperty("dev")
+        if (templateCached) {
+            log.info("templates will be cached")
+        } else {
+            log.info("templates will not be cached")
+        }
         val engine = PebbleEngine.Builder()
-            .cacheActive(false)
+            .cacheActive(templateCached)
             .loader(loader)
             .strictVariables(false)
             .extension(CryptomoonExtension)
             .build()
 
         JavalinPebble.configure(engine)
-
         JavalinRenderer.register(JavalinPebble, ".html")
     }
-
 }

@@ -20,11 +20,11 @@ object LocalWalletsFile {
     private val watchThread: FileWatcher
 
     init {
-        val currentDirectory = Paths.get(System.getProperty("user.dir"))
-        walletsFilePath = currentDirectory.resolve(WALLET_FILENAME)
+        val confDirectory = Paths.get(System.getProperty("user.dir")).resolve("config")
+        walletsFilePath = confDirectory.resolve(WALLET_FILENAME)
         val watchService: WatchService = FileSystems.getDefault().newWatchService()
         watchThread = FileWatcher(WALLET_FILENAME, watchService)
-        currentDirectory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+        confDirectory.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
         updateWallets()
         startWatch()
     }
