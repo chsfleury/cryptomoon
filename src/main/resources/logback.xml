@@ -1,8 +1,7 @@
 <configuration>
 
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <!-- encoders are assigned the type
-         ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+    <!-- encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
@@ -12,6 +11,8 @@
     <appender-ref ref="STDOUT"/>
   </root>
 
+  <logger name="com.zaxxer" level="warn" />
+  <logger name="org.eclipse.jetty.util.log" level="warn" />
   <logger name="fr.chsfleury.cryptomoon" level="info" />
   <logger name="fr.chsfleury.cryptomoon.domain.service" level="debug" />
 </configuration>
