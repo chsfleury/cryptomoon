@@ -10,6 +10,7 @@ class PortfolioStats (
     val total: FiatMap,
     val athTotal: FiatMap,
     val accountStats: Set<AccountStats>,
+    val mergedAccountStats: AccountStats
 ) {
     val ratioAth: BigDecimal = athTotal[USD]
         ?.to(total[USD] ?: BigDecimal.ZERO)

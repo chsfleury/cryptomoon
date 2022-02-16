@@ -16,15 +16,12 @@ class PortfolioService(
     portfolioRepository: PortfolioRepository,
     private val portfolioHistoryRepository: PortfolioHistoryRepository,
     connectorService: ConnectorService,
-    private val quoteService: QuoteService,
-    private val athService: ATHService,
     private val accountService: AccountService
 ): AccountUpdateListener, Logging {
     private val log = logger()
 
     private val portfolioConfiguration: PortfolioConfiguration
     private val portfolioCache = mutableMapOf<Pair<String, Boolean>, Portfolio>()
-    private val portfolioStatsCache = mutableMapOf<Pair<Portfolio, Tickers>, PortfolioStats>()
 
     init {
         portfolioConfiguration = portfolioRepository.loadConfiguration() ?: defaultPortfolioConfiguration(connectorService)
@@ -66,25 +63,6 @@ class PortfolioService(
     fun getPorfolioAccountNames(portfolioName: String): Set<String> {
         return portfolioConfiguration[portfolioName] ?: error("unknown portfolio")
     }
-
-    fun computeStats(portfolio: Portfolio, ticker: Tickers): PortfolioStats {
-        return portfolioStatsCache.computeIfAbsent(portfolio to ticker) {
-            log.debug("computing {} portfolio stats", portfolio.name)
-            val total = FiatMap()
-            val accountStatsSet = portfolio.accounts.mapTo(mutableSetOf()) { accountService.computeStats(it, ticker) }
-            accountStatsSet.forEach { total += it.total }
-            val athTotalInUSD = accountStatsSet.asSequence()
-                .flatMap(AccountStats::assetStats)
-                .map { assetStats -> assetStats.balance * (athService[assetStats.currency] ?: BigDecimal.ZERO) }
-                .sumOf { it }
-            val athFiatMap = FiatMap()
-            athFiatMap[Fiat.USD] = athTotalInUSD
-            quoteService.usdToEur()?.also { usdToEur ->
-                athFiatMap[Fiat.EUR] = athTotalInUSD * usdToEur
-            }
-            PortfolioStats(portfolio.name, total, athFiatMap, accountStatsSet)
-        }
-    }
     
     fun getHistory(portfolioName: String, portfolioValueType: PortfolioValueType, fiat: Fiat, days: Int): PortfolioHistory {
         return portfolioHistoryRepository.findBy(portfolioName, portfolioValueType, fiat, days)
@@ -110,9 +88,5 @@ class PortfolioService(
         portfolioCache.keys
             .filter { it.first in obsoletePortfolios }
             .forEach { portfolioCache.remove(it) }
-
-        portfolioStatsCache.keys
-            .filter { it.first.name in obsoletePortfolios }
-            .forEach { portfolioStatsCache.remove(it) }
     }
 }

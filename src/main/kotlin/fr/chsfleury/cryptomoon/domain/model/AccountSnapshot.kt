@@ -1,6 +1,13 @@
 package fr.chsfleury.cryptomoon.domain.model
 
 import fr.chsfleury.cryptomoon.domain.model.Balance.Companion.toBalance
+import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
+import fr.chsfleury.cryptomoon.domain.model.stats.AssetStats
+import fr.chsfleury.cryptomoon.domain.service.QuoteService
+import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
+import fr.chsfleury.cryptomoon.utils.FiatMap
+import fr.chsfleury.cryptomoon.utils.Logging
+import fr.chsfleury.cryptomoon.utils.logger
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -9,7 +16,41 @@ class AccountSnapshot (
     val balances: Set<Balance>,
     val timestamp: Instant
 ) {
-    companion object {
+    private var accountStats: AccountStats? = null
+
+    fun stats(quoteService: QuoteService, ticker: Tickers) = accountStats ?: computeStats(quoteService, ticker)
+
+    private fun computeStats(quoteService: QuoteService, ticker: Tickers): AccountStats {
+        log.debug("compute {} account stats", origin)
+        val usdToEur: BigDecimal? = quoteService.usdToEur()
+        val quotes = quoteService[ticker]
+        val total = FiatMap()
+
+        val assetStats = balances.asSequence()
+            .filterNot(Balance::isZero)
+            .map { asset ->
+                val balance = asset.amount
+                val price = FiatMap()
+                val priceUSD = quotes?.get(asset.currency)?.price?.also {
+                    price[Fiat.USD] = it
+                    usdToEur?.multiply(it)?.also { p -> price[Fiat.EUR] = p }
+                }
+                val value = FiatMap()
+                priceUSD?.multiply(balance)?.also {
+                    value[Fiat.USD] = it
+                    usdToEur?.multiply(it)?.also { p -> value[Fiat.EUR] = p }
+                }
+                total += value
+                AssetStats(asset.currency, balance, price, value)
+            }
+            .toSet()
+
+        return AccountStats(origin, total, assetStats, timestamp)
+            .also { accountStats = it }
+    }
+
+    companion object: Logging {
+        val log = logger()
         const val ALL = "ALL"
 
         fun empty() = AccountSnapshot("", emptySet(), Instant.now())

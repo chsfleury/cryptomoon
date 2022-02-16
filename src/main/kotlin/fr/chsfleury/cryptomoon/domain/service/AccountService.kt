@@ -3,20 +3,12 @@ package fr.chsfleury.cryptomoon.domain.service
 import fr.chsfleury.cryptomoon.domain.listener.AccountUpdateListener
 import fr.chsfleury.cryptomoon.domain.listener.QuoteUpdateListener
 import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
-import fr.chsfleury.cryptomoon.domain.model.Balance
 import fr.chsfleury.cryptomoon.domain.model.Currency
-import fr.chsfleury.cryptomoon.domain.model.Fiat
-import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
-import fr.chsfleury.cryptomoon.domain.model.stats.AssetStats
 import fr.chsfleury.cryptomoon.domain.repository.AccountRepository
-import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
-import fr.chsfleury.cryptomoon.utils.FiatMap
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
-import java.math.BigDecimal
 
 class AccountService(
-    private val quoteService: QuoteService,
     private val accountRepositories: Collection<AccountRepository>
 ): QuoteUpdateListener, Logging {
     private val log = logger()
@@ -24,7 +16,6 @@ class AccountService(
 
     private var allAccountCache: Set<AccountSnapshot>? = null
     private val mergedAccountCache = mutableMapOf<Set<String>, AccountSnapshot>()
-    private val accountStatsCache = mutableMapOf<Pair<AccountSnapshot, Tickers>, AccountStats>()
 
     fun allAccounts(): Set<AccountSnapshot> {
         return allAccountCache ?: getAllAccounts().also { allAccountCache = it }
@@ -74,36 +65,6 @@ class AccountService(
         notifyAccountUpdate(listOf(account))
     }
 
-    fun computeStats(accountSnapshot: AccountSnapshot, ticker: Tickers): AccountStats {
-        return accountStatsCache.computeIfAbsent(accountSnapshot to ticker) { (a, t) ->
-            log.debug("compute {} account stats", accountSnapshot.origin)
-            val usdToEur: BigDecimal? = quoteService.usdToEur()
-            val quotes = quoteService[t]
-            val total = FiatMap()
-
-            val assetStats = a.balances.asSequence()
-                .filterNot(Balance::isZero)
-                .map { asset ->
-                    val balance = asset.amount
-                    val price = FiatMap()
-                    val priceUSD = quotes?.get(asset.currency)?.price?.also {
-                        price[Fiat.USD] = it
-                        usdToEur?.multiply(it)?.also { p -> price[Fiat.EUR] = p }
-                    }
-                    val value = FiatMap()
-                    priceUSD?.multiply(balance)?.also {
-                        value[Fiat.USD] = it
-                        usdToEur?.multiply(it)?.also { p -> value[Fiat.EUR] = p }
-                    }
-                    total += value
-                    AssetStats(asset.currency, balance, price, value)
-                }
-                .toSet()
-
-            AccountStats(a.origin, total, assetStats, a.timestamp)
-        }
-    }
-
     fun addListener(accountUpdateListener: AccountUpdateListener) {
         accountUpdateListeners.add(accountUpdateListener)
     }
@@ -118,11 +79,6 @@ class AccountService(
         mergedAccountCache.keys
             .filter { key -> obsoleteOrigins.any { origin -> origin in key } }
             .forEach { mergedAccountCache.remove(it) }
-
-        log.debug("invalidate stats cache for {}", obsoleteOrigins)
-        accountStatsCache.keys
-            .filter { it.first.origin in obsoleteOrigins }
-            .forEach { accountStatsCache.remove(it) }
 
         log.debug("notify listeners of {} account update", obsoleteOrigins)
         accountUpdateListeners.forEach {
