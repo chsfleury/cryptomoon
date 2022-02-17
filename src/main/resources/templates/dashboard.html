@@ -107,7 +107,7 @@
                     <div class="flex flex-col gap-8">
                         <div id="valueDistribution_{{ portfolio.name }}" class="rounded-xl"></div>
                         <script type="text/javascript">
-                            Highcharts.getJSON('/api/v1/portfolios/main/assets-distribution?format=highcharts', function (data) {
+                            Highcharts.getJSON('/api/v1/portfolios/main/assets-distribution?format=highcharts&fiat=eur', function (data) {
                                 Highcharts.chart('valueDistribution_{{ portfolio.name }}', {
                                     chart: {
                                         plotBackgroundColor: null,
@@ -126,7 +126,7 @@
                                         y: 30
                                     },
                                     tooltip: {
-                                        pointFormat: 'Value: <b>$ {point.y:.2f}</b>'
+                                        pointFormat: 'Value: <b>€ {point.y:.2f}</b>'
                                     },
                                     accessibility: {
                                         point: {
@@ -154,7 +154,7 @@
 
                         <div id="valueHistory_{{ portfolio.name }}" class="rounded-xl"></div>
                         <script type="text/javascript">
-                            Highcharts.getJSON('/api/v1/portfolios/main/history?format=highcharts', function (data) {
+                            Highcharts.getJSON('/api/v1/portfolios/main/history?format=highcharts&fiat=eur', function (data) {
 
                                 // create the chart
                                 Highcharts.stockChart('valueHistory_{{ portfolio.name }}', {
