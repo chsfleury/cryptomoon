@@ -9,6 +9,6 @@ interface ChartDataFormatter {
 
     fun assetDistributionData(portfolioStats: PortfolioStats): Any?
 
-    fun valueHistory(portfolioHistory: PortfolioHistory): Any?
+    fun valueHistory(portfolioHistory: PortfolioHistory, chunkSizeInHours: Int = 1): Any?
 
 }
