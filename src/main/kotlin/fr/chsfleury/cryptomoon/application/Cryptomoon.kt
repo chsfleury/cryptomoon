@@ -68,10 +68,10 @@ object Cryptomoon: Logging {
 
         // TRIGGERS
         val balanceTrigger = BalanceTrigger(connectorService, accountService)
-        val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote")
-        val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
-        val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
         val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
+        val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
+        val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote", after = listOf(portfolioValueTrigger))
+        val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
         val athTrigger = ATHTrigger(
             tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
             athService,
