@@ -1,6 +1,5 @@
 package fr.chsfleury.cryptomoon.infrastructure.connector.binance
 
-import fr.chsfleury.cryptomoon.connectors.binance.BinanceCurrencyMapper
 import fr.chsfleury.cryptomoon.domain.connector.Connector
 import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
 import fr.chsfleury.cryptomoon.domain.model.Balance

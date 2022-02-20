@@ -1,16 +1,17 @@
-package fr.chsfleury.cryptomoon.connectors.binance
+package fr.chsfleury.cryptomoon.infrastructure.connector.binance
 
 object BinanceCurrencyMapper {
+    private val trueLDCurrencies = emptyList<String>()
     private val currencyModifiers = mapOf(
-        "LDAAVE" to "AAVE",
-        "LDBTC" to "BTC",
-        "LDBUSD" to "BUSD",
-        "LDDOGE" to "DOGE",
-        "LDFTM" to "FTM",
-        "LDSHIB2" to "SHIB",
-        "LDUSDT" to "USDT",
-        "LDKAVA" to "KAVA"
+        "SHIB2" to "SHIB"
     )
 
-    fun map(currencyCode: String): String = currencyModifiers[currencyCode] ?: currencyCode
+    fun map(currencyCode: String): String {
+        val cleanCurrencyCode = if (currencyCode.startsWith("LD") && currencyCode !in trueLDCurrencies) {
+            currencyCode.substring("LD".length)
+        } else {
+            currencyCode
+        }
+        return currencyModifiers[cleanCurrencyCode] ?: cleanCurrencyCode
+    }
 }
