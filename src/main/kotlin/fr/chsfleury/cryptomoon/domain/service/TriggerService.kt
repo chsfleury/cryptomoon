@@ -28,25 +28,34 @@ class TriggerService(
 
     fun start(): TriggerService {
         timer = timer("main", true, 0L, minDelay.toMillis()) {
-            val now = Instant.now()
-            val triggeredAt = triggerRepository.lastTriggered()
-            val triggerExecuted = triggers.asSequence()
-                .filter { it.trigger(triggeredAt, now, false) }
-                .map { it.triggerName }
-                .partition { it in triggeredAt.keys }
-
-            if (triggerExecuted.first.isNotEmpty()) {
-                triggerRepository.update(triggerExecuted.first, now)
-            }
-
-            if (triggerExecuted.second.isNotEmpty()) {
-                triggerRepository.insert(triggerExecuted.second, now)
-            }
+            val executed = check()
+            log.info("executed: {}", executed)
         }
         return this
     }
 
     fun stop() {
         timer.cancel()
+    }
+
+    fun check(force: Boolean = false): Set<String> {
+        val now = Instant.now()
+        val triggeredAt = triggerRepository.lastTriggered()
+        val executedSet = mutableSetOf<String>()
+        val triggerExecuted = triggers.asSequence()
+            .filter { it.trigger(triggeredAt, now, force) }
+            .map { it.triggerName }
+            .onEach(executedSet::add)
+            .partition { it in triggeredAt.keys }
+
+        if (triggerExecuted.first.isNotEmpty()) {
+            triggerRepository.update(triggerExecuted.first, now)
+        }
+
+        if (triggerExecuted.second.isNotEmpty()) {
+            triggerRepository.insert(triggerExecuted.second, now)
+        }
+
+        return executedSet
     }
 }

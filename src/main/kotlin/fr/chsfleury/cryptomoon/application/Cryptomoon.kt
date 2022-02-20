@@ -6,10 +6,7 @@ import com.mitchellbosecke.pebble.loader.FileLoader
 import com.mysql.cj.jdbc.Driver
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import fr.chsfleury.cryptomoon.application.controller.ChartController
-import fr.chsfleury.cryptomoon.application.controller.FiatController
-import fr.chsfleury.cryptomoon.application.controller.PortfolioController
-import fr.chsfleury.cryptomoon.application.controller.TickerController
+import fr.chsfleury.cryptomoon.application.controller.*
 import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.HighchartsFormatter
 import fr.chsfleury.cryptomoon.application.page.DashboardPage
 import fr.chsfleury.cryptomoon.application.pebble.CryptomoonExtension
@@ -69,11 +66,29 @@ object Cryptomoon: Logging {
         val athService = ATHService(ExposedATHRepository)
         val portfolioService = PortfolioService(LocalFilePortfolioRepository, ExposedPortfolioHistoryRepository, connectorService, accountService)
 
+        // TRIGGERS
+        val balanceTrigger = BalanceTrigger(connectorService, accountService)
+        val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote")
+        val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
+        val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
+        val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
+        val athTrigger = ATHTrigger(
+            tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
+            athService,
+            accountService
+        )
+
+        val triggerService = TriggerService(
+            ExposedTriggerRepository,
+            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger, athPortfolioValueTrigger
+        ).start()
+
         // CONTROLLERS
         val portfolioController = PortfolioController(portfolioService, quoteService, athService)
         val tickerController = TickerController(tickerService)
         val fiatController = FiatController(quoteService)
         val chartController = ChartController(portfolioService, quoteService, athService, listOf(HighchartsFormatter))
+        val triggerController = TriggerController(triggerService)
 
         // PAGES
         configureRenderer()
@@ -92,23 +107,8 @@ object Cryptomoon: Logging {
             .get("/api/v1/tickers/{ticker}", tickerController::getTick)
             .get("/api/v1/fiats", fiatController::getFiatPair)
             .get("/api/v1/fiats/last", fiatController::getLastFiatPair)
-
-        // TRIGGERS
-        val balanceTrigger = BalanceTrigger(connectorService, accountService)
-        val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote")
-        val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
-        val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
-        val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
-        val athTrigger = ATHTrigger(
-            tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
-            athService,
-            accountService
-        )
-
-        TriggerService(
-            ExposedTriggerRepository,
-            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger, athPortfolioValueTrigger
-        ).start()
+            .get("/api/v1/triggers/_check", triggerController::checkTriggers)
+            .get("/api/v1/triggers/_force", triggerController::forceTriggers)
 
         // LISTENERS
         accountService.addListener(portfolioService)
