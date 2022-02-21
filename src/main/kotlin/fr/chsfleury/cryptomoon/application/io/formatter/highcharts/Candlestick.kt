@@ -30,5 +30,5 @@ class Candlestick (
         }
     }
 
-    fun toJson() = listOf(at, open?.amount, min?.amount, max?.amount, close?.amount)
+    fun toJson() = listOf(at, open?.amount, max?.amount, min?.amount, close?.amount)
 }
