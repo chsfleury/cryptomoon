@@ -18,4 +18,12 @@ class FiatMap: EnumMap<Fiat, BigDecimal>(Fiat::class.java) {
         }
         return this
     }
+
+    companion object {
+        fun of(vararg pairs: Pair<Fiat, BigDecimal>): FiatMap {
+            val map = FiatMap()
+            map.putAll(pairs)
+            return map
+        }
+    }
 }
