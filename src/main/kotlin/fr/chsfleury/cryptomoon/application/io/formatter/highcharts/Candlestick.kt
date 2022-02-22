@@ -1,8 +1,7 @@
 package fr.chsfleury.cryptomoon.application.io.formatter.highcharts
 
 import fr.chsfleury.cryptomoon.domain.model.PorfolioValueSnapshot
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import java.time.Instant
 
 class Candlestick (
     val at: Long
@@ -30,5 +29,26 @@ class Candlestick (
         }
     }
 
+    fun adjustMinMaxWithBounds() {
+        if (open!!.amount > max!!.amount) {
+            max = open
+        }
+
+        if (open!!.amount < min!!.amount) {
+            min = open
+        }
+
+        if (close!!.amount > max!!.amount) {
+            max = close
+        }
+
+        if (close!!.amount < min!!.amount) {
+            min = close
+        }
+    }
+
     fun toJson() = listOf(at, open?.amount, max?.amount, min?.amount, close?.amount)
+    override fun toString(): String {
+        return "(open=$open, min=$min, max=$max, close=$close) @ " + Instant.ofEpochMilli(at).toString()
+    }
 }
