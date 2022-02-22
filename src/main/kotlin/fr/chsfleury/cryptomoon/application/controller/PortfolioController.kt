@@ -40,7 +40,7 @@ class PortfolioController(
         val portfolioName = ctx.pathParam("portfolio")
         val origin = ctx.pathParam("origin")
         val account = portfolioService.getPortfolioAccount(portfolioName, origin) ?: error("unknown origin")
-        val accountStats = account.stats(quoteService, COINMARKETCAP)
+        val accountStats = account.stats(quoteService, athService, COINMARKETCAP)
         ctx.json(AccountJson.of(accountStats))
     }
 }

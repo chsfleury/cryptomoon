@@ -1,6 +1,8 @@
 package fr.chsfleury.cryptomoon.application.page
 
 import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
+import fr.chsfleury.cryptomoon.domain.model.Currencies
+import fr.chsfleury.cryptomoon.domain.model.Currency
 import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.domain.service.ATHService
 import fr.chsfleury.cryptomoon.domain.service.PortfolioService
@@ -22,11 +24,12 @@ class DashboardPage(
             .toList()
         val mergedStats = portfolios.associate { portfolio ->
             val allAccountSnapshot = AccountSnapshot.merge(portfolio.accounts, AccountSnapshot.ALL) ?: AccountSnapshot.empty()
-            portfolio.name to allAccountSnapshot.stats(quoteService, COINMARKETCAP)
+            portfolio.name to allAccountSnapshot.stats(quoteService, athService, COINMARKETCAP)
         }
         ctx.render("dashboard.html", mapOf(
             "portfolios" to portfolioStats,
             "mergedMap" to mergedStats,
+            "bitcoinPriceUSD" to quoteService[COINMARKETCAP]?.get(Currencies["BTC"])?.price
         ))
     }
 

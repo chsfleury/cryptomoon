@@ -11,4 +11,6 @@ interface ChartDataFormatter {
 
     fun valueHistory(portfolioHistory: PortfolioHistory, chunkSizeInHours: Int = 1): Any?
 
+    fun athHistory(portfolioHistory: PortfolioHistory): Any?
+
 }

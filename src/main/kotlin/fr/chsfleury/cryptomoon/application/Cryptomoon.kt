@@ -10,6 +10,7 @@ import fr.chsfleury.cryptomoon.application.controller.*
 import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.HighchartsFormatter
 import fr.chsfleury.cryptomoon.application.page.DashboardPage
 import fr.chsfleury.cryptomoon.application.pebble.CryptomoonExtension
+import fr.chsfleury.cryptomoon.domain.ExecutionMode
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.service.*
@@ -42,11 +43,12 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.Duration
 import javax.sql.DataSource
 
-object Cryptomoon: Logging {
+object Cryptomoon : Logging {
     private val log = logger()
 
     @JvmStatic
     fun main(args: Array<String>) {
+        ExecutionMode.set(System.getProperty("executionMode").toIntOrNull())
 
         val port = LocalFileConfiguration["server", "port"] ?: 7777
 
@@ -66,35 +68,46 @@ object Cryptomoon: Logging {
         val athService = ATHService(ExposedATHRepository)
         val portfolioService = PortfolioService(LocalFilePortfolioRepository, ExposedPortfolioHistoryRepository, connectorService, accountService)
 
-        // TRIGGERS
-        val balanceTrigger = BalanceTrigger(connectorService, accountService)
-        val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
-        val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
-        val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote", after = listOf(portfolioValueTrigger))
-        val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
-        val athTrigger = ATHTrigger(
-            tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
-            athService,
-            accountService
-        )
-
-        val triggerService = TriggerService(
-            ExposedTriggerRepository,
-            balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger, athPortfolioValueTrigger
-        ).start()
-
         // CONTROLLERS
         val portfolioController = PortfolioController(portfolioService, quoteService, athService)
         val tickerController = TickerController(tickerService)
         val fiatController = FiatController(quoteService)
         val chartController = ChartController(portfolioService, quoteService, athService, listOf(HighchartsFormatter))
-        val triggerController = TriggerController(triggerService)
+        val athController = AthController(tickerService[Tickers.LIVECOINWATCH] as ATHTicker)
+
+        val javalin = Javalin.create(this::configureJavalin)
+
+        if (ExecutionMode.isStandard()) {
+            // TRIGGERS
+            val balanceTrigger = BalanceTrigger(connectorService, accountService)
+            val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
+            val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
+            val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote", after = listOf(portfolioValueTrigger))
+            val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
+            val athTrigger = ATHTrigger(
+                tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
+                athService,
+                accountService
+            )
+
+            val triggerService = TriggerService(
+                ExposedTriggerRepository,
+                balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger, athPortfolioValueTrigger
+            ).start()
+
+            // CONTROLLERS
+            val triggerController = TriggerController(triggerService)
+
+            javalin
+                .get("/api/v1/triggers/_check", triggerController::checkTriggers)
+                .get("/api/v1/triggers/_force", triggerController::forceTriggers)
+        }
 
         // PAGES
         configureRenderer()
         val dashboardPage = DashboardPage(portfolioService, quoteService, athService)
 
-        Javalin.create(this::configureJavalin).start(port)
+        javalin
             .get("/", dashboardPage::getDashboard)
             .get("/api/v1/portfolios", portfolioController::getPortfolioNames)
             .get("/api/v1/portfolios/{portfolio}", portfolioController::getPortfolio)
@@ -107,9 +120,9 @@ object Cryptomoon: Logging {
             .get("/api/v1/tickers/{ticker}", tickerController::getTick)
             .get("/api/v1/fiats", fiatController::getFiatPair)
             .get("/api/v1/fiats/last", fiatController::getLastFiatPair)
-            .get("/api/v1/triggers/_check", triggerController::checkTriggers)
-            .get("/api/v1/triggers/_force", triggerController::forceTriggers)
+            .get("/api/v1/aths/{symbol}", athController::getAth)
 
+        javalin.start(port)
         // LISTENERS
         accountService.addListener(portfolioService)
         quoteService.addListener(accountService)
@@ -125,7 +138,7 @@ object Cryptomoon: Logging {
             jdbcUrl = url
             username = user
             password = datasourceConfiguration["password"] ?: error("missing datasource password")
-            driverClassName = when(datasourceConfiguration["type"] ?: error("missing datasource type")) {
+            driverClassName = when (datasourceConfiguration["type"] ?: error("missing datasource type")) {
                 "MYSQL" -> Driver::class.java.name
                 else -> error("unsupported datasource")
             }

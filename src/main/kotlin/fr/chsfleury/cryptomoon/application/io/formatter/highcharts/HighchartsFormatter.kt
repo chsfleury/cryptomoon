@@ -1,8 +1,11 @@
 package fr.chsfleury.cryptomoon.application.io.formatter.highcharts
 
 import fr.chsfleury.cryptomoon.application.io.formatter.ChartDataFormatter
+import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.strategies.ConnectNeighborsBucketStragegy
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioHistory
+import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.ATH
+import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.CURRENT
 import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.utils.MinMax.minMaxOf
 import java.time.*
@@ -28,7 +31,13 @@ object HighchartsFormatter: ChartDataFormatter {
             buckets[key]?.add(snapshot)
         }
 
+        ConnectNeighborsBucketStragegy.connectBuckets(buckets)
+
         return buckets.map { it.value.toJson() }
+    }
+
+    override fun athHistory(portfolioHistory: PortfolioHistory): Any? {
+        return portfolioHistory.snapshots.map { listOf(it.at.toEpochMilli(), it.amount) }
     }
 
     private fun createBuckets(minInstant: Instant, maxInstant: Instant): Map<Long, Candlestick> {

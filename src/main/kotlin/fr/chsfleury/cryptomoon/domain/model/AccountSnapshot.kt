@@ -1,8 +1,11 @@
 package fr.chsfleury.cryptomoon.domain.model
 
 import fr.chsfleury.cryptomoon.domain.model.Balance.Companion.toBalance
+import fr.chsfleury.cryptomoon.domain.model.Fiat.EUR
+import fr.chsfleury.cryptomoon.domain.model.Fiat.USD
 import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
 import fr.chsfleury.cryptomoon.domain.model.stats.AssetStats
+import fr.chsfleury.cryptomoon.domain.service.ATHService
 import fr.chsfleury.cryptomoon.domain.service.QuoteService
 import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
 import fr.chsfleury.cryptomoon.utils.FiatMap
@@ -18,9 +21,9 @@ class AccountSnapshot (
 ) {
     private var accountStats: AccountStats? = null
 
-    fun stats(quoteService: QuoteService, ticker: Tickers) = accountStats ?: computeStats(quoteService, ticker)
+    fun stats(quoteService: QuoteService, athService: ATHService, ticker: Tickers) = accountStats ?: computeStats(quoteService, athService, ticker)
 
-    private fun computeStats(quoteService: QuoteService, ticker: Tickers): AccountStats {
+    private fun computeStats(quoteService: QuoteService, athService: ATHService, ticker: Tickers): AccountStats {
         log.debug("compute {} account stats", origin)
         val usdToEur: BigDecimal? = quoteService.usdToEur()
         val quotes = quoteService[ticker]
@@ -31,17 +34,28 @@ class AccountSnapshot (
             .map { asset ->
                 val balance = asset.amount
                 val price = FiatMap()
-                val priceUSD = quotes?.get(asset.currency)?.price?.also {
-                    price[Fiat.USD] = it
-                    usdToEur?.multiply(it)?.also { p -> price[Fiat.EUR] = p }
+                val quote = quotes?.get(asset.currency)
+                val priceUSD = quote?.price?.also {
+                    price[USD] = it
+                    usdToEur?.multiply(it)?.also { p -> price[EUR] = p }
                 }
                 val value = FiatMap()
                 priceUSD?.multiply(balance)?.also {
-                    value[Fiat.USD] = it
-                    usdToEur?.multiply(it)?.also { p -> value[Fiat.EUR] = p }
+                    value[USD] = it
+                    usdToEur?.multiply(it)?.also { p -> value[EUR] = p }
                 }
                 total += value
-                AssetStats(asset.currency, balance, price, value)
+
+                val athMap = athService[asset.currency]?.let { ath ->
+                    val map = FiatMap.of(USD to ath)
+                    usdToEur?.run { map[EUR] = this }
+                    map
+                } ?: FiatMap()
+                val athRatio = if (athMap[USD] != null && priceUSD != null) {
+                    100.0 * priceUSD.toDouble() / athMap[USD]!!.toDouble()
+                } else null
+
+                AssetStats(asset.currency, quote?.rank, balance, price, value, athMap, athRatio)
             }
             .toSet()
 

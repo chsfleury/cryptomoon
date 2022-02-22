@@ -5,6 +5,8 @@ import fr.chsfleury.cryptomoon.application.io.formatter.ChartDataFormatter
 import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.HighchartsFormatter
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
+import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.ATH
+import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.CURRENT
 import fr.chsfleury.cryptomoon.domain.service.ATHService
 import fr.chsfleury.cryptomoon.domain.service.PortfolioService
 import fr.chsfleury.cryptomoon.domain.service.QuoteService
@@ -44,9 +46,13 @@ class ChartController(
         val responseBody = ctx.queryParam("format")
             ?.let { format ->
                 formatters.firstOrNull { it.formatName == format }
-            }
-            ?.valueHistory(history)
-            ?: PortfolioHistoryJson.of(history)
+            }?.let {
+                val formattedData = when(history.type) {
+                    CURRENT -> it.valueHistory(history)
+                    ATH -> it.athHistory(history)
+                }
+                formattedData
+            } ?: PortfolioHistoryJson.of(history)
 
         ctx.json(responseBody)
     }

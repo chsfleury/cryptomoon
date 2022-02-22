@@ -46,8 +46,9 @@
             </a>
         </nav>
 
-        <header id="topbar" class="z-50 fixed left-28 right-0 top-0 h-20 flex flex-row items-center py-4 px-8">
-            searchbar
+        <header id="topbar" class="z-50 fixed left-28 right-0 top-0 h-20 flex flex-row items-center justify-end py-4 px-8">
+            <div class="px-4 font-semibold">BTC $ {{ bitcoinPriceUSD | numberformat("#.##") }}</div>
+            <div class="px-4 font-semibold">Total {{ mergedMap.get('main').total | fiatMap('EUR') }}</div>
         </header>
 
         <main class="ml-28 mt-20 p-8">
@@ -86,16 +87,20 @@
                         <thead>
                         <tr>
                             <th class="text-left p-4 pl-6 w-48">Currency</th>
-                            <th class="text-left p-4 pl-6 w-48">Price</th>
+                            <th class="text-left p-4 pl-6 w-16">Rank</th>
+                            <th class="text-left p-4 pl-6 w-32">Price</th>
+                            <th class="text-left p-4 pl-6 w-48">ATH</th>
                             <th class="text-left p-4 pl-6 w-48">Balance</th>
-                            <th class="text-left p-4 pl-6 w-48">Value</th>
+                            <th class="text-left p-4 pl-6 w-32">Value</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for asset in mergedStats.assetsByValueDesc %}
                         <tr class="text-2xl">
                             <td class="p-6"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
+                            <td class="p-6">{{ asset.rank }}</td>
                             <td class="p-6">{{ asset.price | fiatMap('USD', false) }}</td>
+                            <td class="p-6">{{ asset.ath | fiatMap('USD', false, false) }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
                             <td class="p-6">{{ asset.balance | balance }}</td>
                             <td class="p-6">{{ asset.value | fiatMap('EUR') }}</td>
                         </tr>
@@ -154,9 +159,7 @@
 
                         <div id="valueHistory_{{ portfolio.name }}" class="rounded-xl"></div>
                         <script type="text/javascript">
-                            Highcharts.getJSON('/api/v1/portfolios/main/history?format=highcharts&fiat=eur', function (data) {
-
-                                // create the chart
+                            Highcharts.getJSON('/api/v1/portfolios/main/history?format=highcharts&fiat=eur', function (data1) {
                                 Highcharts.stockChart('valueHistory_{{ portfolio.name }}', {
                                     chart: {
                                         backgroundColor: "#252d47",
@@ -192,6 +195,54 @@
                                     series: [{
                                         name: 'Value',
                                         type: 'candlestick',
+                                        data: data1,
+                                        tooltip: {
+                                            valueDecimals: 2
+                                        }
+                                    }]
+                                });
+                            });
+                        </script>
+
+                        <div id="athHistory_{{ portfolio.name }}" class="rounded-xl"></div>
+                        <script type="text/javascript">
+                            Highcharts.getJSON('/api/v1/portfolios/main/history/ath?format=highcharts&fiat=eur', function (data) {
+                                // create the chart
+                                Highcharts.stockChart('athHistory_{{ portfolio.name }}', {
+                                    chart: {
+                                        backgroundColor: "#252d47",
+                                        height: '60%'
+                                    },
+                                    title: {
+                                        text: 'ATH History',
+                                        style: {
+                                            fontFamily: 'Montserrat'
+                                        },
+                                        margin: 50,
+                                        y: 30
+                                    },
+
+                                    rangeSelector: {
+                                        buttons: [{
+                                            type: 'day',
+                                            count: 3,
+                                            text: '3D'
+                                        }, {
+                                            type: 'day',
+                                            count: 7,
+                                            text: '7D'
+                                        }, {
+                                            type: 'all',
+                                            count: 1,
+                                            text: 'All'
+                                        }],
+                                        selected: 1,
+                                        inputEnabled: false
+                                    },
+
+                                    series: [{
+                                        name: 'ATH',
+                                        type: 'line',
                                         data: data,
                                         tooltip: {
                                             valueDecimals: 2

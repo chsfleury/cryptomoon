@@ -25,9 +25,9 @@ class Portfolio(
     private fun computeStats(quoteService: QuoteService, athService: ATHService, ticker: Tickers): PortfolioStats {
         log.debug("computing {} portfolio stats", name)
         val total = FiatMap()
-        val accountStatsSet = accounts.mapTo(mutableSetOf()) { it.stats(quoteService, ticker) }
+        val accountStatsSet = accounts.mapTo(mutableSetOf()) { it.stats(quoteService, athService, ticker) }
         accountStatsSet.forEach { total += it.total }
-        val mergedAccountStats = mergedAccount.stats(quoteService, ticker)
+        val mergedAccountStats = mergedAccount.stats(quoteService, athService, ticker)
         val athTotalInUSD = accountStatsSet.asSequence()
             .flatMap(AccountStats::assetStats)
             .map { assetStats -> assetStats.balance * (athService[assetStats.currency] ?: BigDecimal.ZERO) }

@@ -6,7 +6,10 @@ import java.math.BigDecimal
 
 class AssetStats (
     val currency: Currency,
+    val rank: Int?,
     val balance: BigDecimal,
     val price: FiatMap,
-    val value: FiatMap
+    val value: FiatMap,
+    val ath: FiatMap,
+    val athRatio: Double?
 )
