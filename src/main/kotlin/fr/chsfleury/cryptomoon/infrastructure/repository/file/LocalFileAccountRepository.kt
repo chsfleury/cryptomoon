@@ -35,11 +35,15 @@ object LocalFileAccountRepository: AccountRepository {
         }
     }
 
-    override fun getKnownCurrencies(): Set<Currency> {
-        return LocalWalletsFile.getWallets().values
+    override fun getKnownCurrencies(filterFiat: Boolean): Set<Currency> {
+        var seq = LocalWalletsFile.getWallets().values
             .asSequence()
             .flatMap { it.balances.keys }
-            .toSet()
+
+        if (filterFiat) {
+            seq = seq.filterNot { it.fiat }
+        }
+        return seq.toSet()
     }
 
     override fun supportWrite(): Boolean = false

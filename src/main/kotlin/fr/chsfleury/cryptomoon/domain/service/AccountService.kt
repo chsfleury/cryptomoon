@@ -53,7 +53,8 @@ class AccountService(
         repo.getAccount(origin)?.let { sequenceOf(it) } ?: emptySequence()
     }.toList().let { AccountSnapshot.merge(it, origin) }
 
-    fun getKnownCurrencies(): Set<Currency> = accountRepositories.flatMapTo(mutableSetOf(), AccountRepository::getKnownCurrencies)
+    fun getKnownCurrencies(filterFiat: Boolean = true): Set<Currency> = accountRepositories
+        .flatMapTo(mutableSetOf()) { it.getKnownCurrencies(filterFiat) }
 
     fun insert(account: AccountSnapshot) {
         log.debug("insert {} account data", account.origin)

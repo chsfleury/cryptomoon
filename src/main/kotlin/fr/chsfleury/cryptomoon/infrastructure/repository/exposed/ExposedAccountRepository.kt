@@ -110,14 +110,20 @@ object ExposedAccountRepository: AccountRepository {
         }
     }
 
-    override fun getKnownCurrencies(): Set<Currency> {
+    override fun getKnownCurrencies(filterFiat: Boolean): Set<Currency> {
         return transaction {
-            BalanceEntity
+            var seq = BalanceEntity
                 .slice(BalanceEntity.currency)
                 .selectAll()
                 .withDistinct(true)
+                .asSequence()
                 .map { Currencies[it[BalanceEntity.currency]] }
-                .toSet()
+
+            if (filterFiat) {
+                seq = seq.filterNot { it.fiat }
+            }
+
+            seq.toSet()
         }
     }
 

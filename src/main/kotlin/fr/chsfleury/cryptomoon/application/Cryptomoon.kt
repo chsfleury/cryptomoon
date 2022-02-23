@@ -1,5 +1,7 @@
 package fr.chsfleury.cryptomoon.application
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
 import com.mitchellbosecke.pebble.PebbleEngine
 import com.mitchellbosecke.pebble.loader.ClasspathLoader
 import com.mitchellbosecke.pebble.loader.FileLoader
@@ -10,7 +12,7 @@ import fr.chsfleury.cryptomoon.application.controller.*
 import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.HighchartsFormatter
 import fr.chsfleury.cryptomoon.application.page.DashboardPage
 import fr.chsfleury.cryptomoon.application.pebble.CryptomoonExtension
-import fr.chsfleury.cryptomoon.domain.ExecutionMode
+import fr.chsfleury.cryptomoon.domain.Execution
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.service.*
@@ -40,6 +42,7 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.StdOutSqlLogger
 import org.jetbrains.exposed.sql.addLogger
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.slf4j.LoggerFactory
 import java.time.Duration
 import javax.sql.DataSource
 
@@ -48,7 +51,15 @@ object Cryptomoon : Logging {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        ExecutionMode.set(System.getProperty("executionMode")?.toIntOrNull())
+        val logLevel: String? = LocalFileConfiguration["log"]
+        if (logLevel != null) {
+            val rootLogger: Logger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
+            rootLogger.level = Level.valueOf(logLevel)
+            log.info("Set root log level to {}", logLevel)
+        }
+
+        val executionMode: String? = LocalFileConfiguration["mode"]
+        Execution.set(executionMode)
 
         val port = LocalFileConfiguration["server", "port"] ?: 7777
 
@@ -77,7 +88,7 @@ object Cryptomoon : Logging {
 
         val javalin = Javalin.create(this::configureJavalin)
 
-        if (ExecutionMode.isStandard()) {
+        if (Execution.isStandard()) {
             // TRIGGERS
             val balanceTrigger = BalanceTrigger(connectorService, accountService)
             val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))

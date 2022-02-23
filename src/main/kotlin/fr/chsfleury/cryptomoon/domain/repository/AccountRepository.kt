@@ -8,7 +8,7 @@ interface AccountRepository {
     fun mergedAccounts(origins: Set<String>): AccountSnapshot
     fun allAccounts(): Set<AccountSnapshot>
     fun getAccount(origin: String): AccountSnapshot?
-    fun getKnownCurrencies(): Set<Currency>
+    fun getKnownCurrencies(filterFiat: Boolean = true): Set<Currency>
 
     fun insert(account: AccountSnapshot)
     fun supportWrite(): Boolean = true

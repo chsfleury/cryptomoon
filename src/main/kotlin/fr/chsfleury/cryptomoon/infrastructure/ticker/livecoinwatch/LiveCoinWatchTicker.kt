@@ -61,6 +61,9 @@ class LiveCoinWatchTicker(http: HttpClient, config: Map<String, Any>): ATHTicker
                 .filter { it.currency in knownCurrencies }
                 .forEach(athSet::add)
         }
+        if (log.isDebugEnabled) {
+            log.debug("[{}] ATHs retrieved for: {}", name, athSet.map { it.currency })
+        }
         return athSet
     }
 
@@ -75,10 +78,15 @@ class LiveCoinWatchTicker(http: HttpClient, config: Map<String, Any>): ATHTicker
             offset += 100
         }
 
+        log.debug("remaining currencies: {}", remainingCurrencies)
         remainingCurrencies.forEach { currency ->
-            val request = CoinSingleRequest(fiat.name, currency.symbol, true)
-            val response = client.coinSingle(request, apiKey)
-            responseHandler(listOf(response.toCoinResponseItem(currency.symbol)), infinityRank)
+            try {
+                val request = CoinSingleRequest(fiat.name, currency.symbol, true)
+                val response = client.coinSingle(request, apiKey)
+                responseHandler(listOf(response.toCoinResponseItem(currency.symbol)), infinityRank)
+            } catch (ex: Exception) {
+                log.error("[$name] cannot request info for currency $currency", ex)
+            }
         }
     }
 }
