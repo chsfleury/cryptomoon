@@ -48,7 +48,7 @@ object Cryptomoon : Logging {
 
     @JvmStatic
     fun main(args: Array<String>) {
-        ExecutionMode.set(System.getProperty("executionMode").toIntOrNull())
+        ExecutionMode.set(System.getProperty("executionMode")?.toIntOrNull())
 
         val port = LocalFileConfiguration["server", "port"] ?: 7777
 
