@@ -2,7 +2,7 @@ package fr.chsfleury.cryptomoon.domain.model
 
 import java.math.BigDecimal
 
-class Balance (
+open class Balance (
     val currency: Currency,
     val amount: BigDecimal
 ) {
@@ -33,6 +33,4 @@ class Balance (
     override fun toString(): String {
         return "Balance(currency=$currency, amount=$amount)"
     }
-
-
 }

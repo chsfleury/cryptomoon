@@ -78,9 +78,10 @@ object Cryptomoon : Logging {
         val accountService = AccountService(listOf(ExposedAccountRepository, LocalFileAccountRepository))
         val athService = ATHService(ExposedATHRepository)
         val portfolioService = PortfolioService(LocalFilePortfolioRepository, ExposedPortfolioHistoryRepository, connectorService, accountService)
+        val balanceService = BalanceService(quoteService, ExposedBalanceRepository)
 
         // CONTROLLERS
-        val portfolioController = PortfolioController(portfolioService, quoteService, athService)
+        val portfolioController = PortfolioController(portfolioService, quoteService, athService, balanceService)
         val tickerController = TickerController(tickerService)
         val fiatController = FiatController(quoteService)
         val chartController = ChartController(portfolioService, quoteService, athService, listOf(HighchartsFormatter))
@@ -125,6 +126,7 @@ object Cryptomoon : Logging {
             .get("/api/v1/portfolios/{portfolio}/assets-distribution", chartController::getAssetDistribution)
             .get("/api/v1/portfolios/{portfolio}/accounts", portfolioController::getPortfolioAccountNames)
             .get("/api/v1/portfolios/{portfolio}/accounts/{origin}", portfolioController::getPortfolioAccount)
+            .get("/api/v1/portfolios/{portfolio}/delta", portfolioController::getPortfolioDelta)
             .get("/api/v1/portfolios/{portfolio}/history") { ctx -> chartController.getPortfolioHistory(PortfolioValueType.CURRENT, ctx) }
             .get("/api/v1/portfolios/{portfolio}/history/{valueType}", chartController::getPortfolioHistory)
             .get("/api/v1/tickers", tickerController::getTickerNames)

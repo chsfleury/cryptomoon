@@ -2,7 +2,6 @@ package fr.chsfleury.cryptomoon.infrastructure.repository.exposed
 
 import fr.chsfleury.cryptomoon.domain.model.*
 import fr.chsfleury.cryptomoon.domain.repository.QuoteRepository
-import fr.chsfleury.cryptomoon.infrastructure.dto.BalanceRecord
 import fr.chsfleury.cryptomoon.infrastructure.dto.QuoteRecord
 import fr.chsfleury.cryptomoon.infrastructure.entities.QuoteEntity
 import fr.chsfleury.cryptomoon.infrastructure.repository.execAndMap

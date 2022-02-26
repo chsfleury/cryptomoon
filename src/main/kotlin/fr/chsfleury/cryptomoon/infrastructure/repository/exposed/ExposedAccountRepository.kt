@@ -5,7 +5,7 @@ import fr.chsfleury.cryptomoon.domain.model.Balance
 import fr.chsfleury.cryptomoon.domain.model.Currencies
 import fr.chsfleury.cryptomoon.domain.model.Currency
 import fr.chsfleury.cryptomoon.domain.repository.AccountRepository
-import fr.chsfleury.cryptomoon.infrastructure.dto.BalanceRecord
+import fr.chsfleury.cryptomoon.infrastructure.dto.PlatformBalanceRecord
 import fr.chsfleury.cryptomoon.infrastructure.dto.MutableAccount
 import fr.chsfleury.cryptomoon.infrastructure.entities.BalanceEntity
 import fr.chsfleury.cryptomoon.infrastructure.repository.execAndMap
@@ -71,7 +71,7 @@ object ExposedAccountRepository: AccountRepository {
 
     override fun allAccounts(): Set<AccountSnapshot> {
         val collectingMap = mutableMapOf<String, MutableAccount>()
-        val balances: List<BalanceRecord> = transaction { ALL_PLATFORM_BALANCES_QUERY.execAndMap(::BalanceRecord) }
+        val balances: List<PlatformBalanceRecord> = transaction { ALL_PLATFORM_BALANCES_QUERY.execAndMap(::PlatformBalanceRecord) }
 
         balances.forEach { record ->
             val account = collectingMap.computeIfAbsent(record.origin) { origin ->

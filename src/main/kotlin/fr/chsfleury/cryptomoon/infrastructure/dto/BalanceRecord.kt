@@ -5,8 +5,7 @@ import fr.chsfleury.cryptomoon.domain.model.Currencies
 import java.sql.ResultSet
 import java.time.Instant
 
-class BalanceRecord(resultSet: ResultSet) {
-    val origin: String = resultSet.getString("origin")
+open class BalanceRecord(resultSet: ResultSet) {
     val balance: Balance = Balance(
         Currencies[resultSet.getString("currency")],
         resultSet.getBigDecimal("amount")

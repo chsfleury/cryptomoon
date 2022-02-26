@@ -22,7 +22,7 @@ object FiatMapFilter: Filter {
         }
         val keyString = args["key"] as? String ?: error("missing key param on line $lineNumber")
         val round = args["round"] as? Boolean ?: true
-        val errorOnMissing = args["errorOnMissing"] as? Boolean ?: true
+        val errorOnMissing = args["errorOnMissing"] as? Boolean ?: false
         val key = Fiat.valueOf(keyString)
         val decimal = input[key]
         return if (decimal == null) {
