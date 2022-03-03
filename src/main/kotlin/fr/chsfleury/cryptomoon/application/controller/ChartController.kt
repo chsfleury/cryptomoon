@@ -1,9 +1,9 @@
 package fr.chsfleury.cryptomoon.application.controller
 
-import fr.chsfleury.cryptomoon.application.io.PortfolioHistoryJson
 import fr.chsfleury.cryptomoon.application.io.formatter.ChartDataFormatter
-import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.HighchartsFormatter
+import fr.chsfleury.cryptomoon.application.io.formatter.standard.StandardChartDataFormatter
 import fr.chsfleury.cryptomoon.domain.model.Fiat
+import fr.chsfleury.cryptomoon.domain.model.PortfolioHistory
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.ATH
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.CURRENT
@@ -22,15 +22,22 @@ class ChartController(
 
     fun getAssetDistribution(ctx: Context) {
         val portfolioName = ctx.pathParam("portfolio")
-        val formatter = ctx.queryParam("format")
-            ?.let { format -> formatters.firstOrNull { it.formatName == format } }
-            ?: HighchartsFormatter
-
         val portfolio = portfolioService.getPortfolio(portfolioName, false)
         val portfolioStats = portfolio.stats(quoteService, athService, Tickers.COINMARKETCAP)
-        formatter.assetDistributionData(portfolioStats)
-            ?.run { ctx.json(this) }
-            ?: ctx.status(400)
+
+        formatAndRespond(ctx) {
+            it.assetDistributionData(portfolioStats)
+        }
+    }
+
+    fun getAccountValueDistribution(ctx: Context) {
+        val portfolioName = ctx.pathParam("portfolio")
+        val fiat = ctx.queryParam("fiat")?.let { Fiat.valueOf(it.uppercase()) } ?: Fiat.EUR
+        val portfolio = portfolioService.getPortfolio(portfolioName, false)
+        val portfolioStats = portfolio.stats(quoteService, athService, Tickers.COINMARKETCAP)
+        formatAndRespond(ctx) {
+            it.accountValueDistribution(portfolioStats, fiat)
+        }
     }
 
     fun getPortfolioHistory(ctx: Context) {
@@ -43,18 +50,25 @@ class ChartController(
         val days = ctx.queryParam("days")?.toIntOrNull() ?: 7
         val fiat = ctx.queryParam("fiat")?.let { Fiat.valueOf(it.uppercase()) } ?: Fiat.USD
         val history = portfolioService.getHistory(portfolioName, portfolioValueType, fiat, days)
-        val responseBody = ctx.queryParam("format")
-            ?.let { format ->
-                formatters.firstOrNull { it.formatName == format }
-            }?.let {
-                val formattedData = when(history.type) {
-                    CURRENT -> it.valueHistory(history)
-                    ATH -> it.athHistory(history)
-                }
-                formattedData
-            } ?: PortfolioHistoryJson.of(history)
+        formatAndRespond(ctx) { formatter ->
+            formatHistoryData(formatter, history)
+        }
+    }
 
-        ctx.json(responseBody)
+    private fun formatAndRespond(ctx: Context, responseSupplier: (ChartDataFormatter) -> Any?) {
+        chooseFormatter(ctx)
+            .let(responseSupplier::invoke)
+            ?.run { ctx.json(this) }
+            ?: ctx.status(400)
+    }
+
+    private fun chooseFormatter(ctx: Context): ChartDataFormatter = ctx.queryParam("format")
+        ?.let { format -> formatters.firstOrNull { it.formatName == format }  }
+        ?: StandardChartDataFormatter
+
+    private fun formatHistoryData(formatter: ChartDataFormatter, history: PortfolioHistory): Any? = when(history.type) {
+        CURRENT -> formatter.valueHistory(history)
+        ATH -> formatter.athHistory(history)
     }
 
 }

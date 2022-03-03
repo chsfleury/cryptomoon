@@ -1,6 +1,6 @@
 
 body {
-    background-color: #1C2237;
+    background-color: #141c2b;
     color: #ffffff;
     font-family: 'Montserrat', sans-serif;
 }
@@ -28,9 +28,9 @@ body {
 }
 
 .card, .table {
-    background-color: #252d47;
+    background-color: #1c273c;
 }
 
 .table tr {
-    border-bottom: 3px solid #1C2237;
+    border-bottom: 3px solid #24324d;
 }

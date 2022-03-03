@@ -4,12 +4,14 @@ import fr.chsfleury.cryptomoon.application.io.formatter.ChartDataFormatter
 import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.strategies.ConnectNeighborsBucketStragegy
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioHistory
-import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.ATH
-import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.CURRENT
 import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.utils.MinMax.minMaxOf
-import java.time.*
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneOffset
 import java.util.*
+
 
 object HighchartsFormatter: ChartDataFormatter {
 
@@ -19,7 +21,12 @@ object HighchartsFormatter: ChartDataFormatter {
     override fun assetDistributionData(portfolioStats: PortfolioStats): List<Point> = portfolioStats.mergedAccountStats.assetsByValueDesc
         .map { Point(it.currency.symbol, it.value[Fiat.USD]?.toDouble() ?: 0.0) }
 
-    override fun valueHistory(portfolioHistory: PortfolioHistory, chunkSizeInHours: Int): List<List<Any?>> {
+    override fun accountValueDistribution(portfolioStats: PortfolioStats, fiat: Fiat): List<Point> = portfolioStats.accountStats.asSequence()
+        .filter { it.total[fiat] != null }
+        .map { Point(it.origin, it.total.clean()[fiat]!!.toDouble()) }
+        .toList()
+
+    override fun valueHistory(portfolioHistory: PortfolioHistory): List<List<Any?>> {
         if (portfolioHistory.snapshots.isEmpty()) {
             return emptyList()
         }

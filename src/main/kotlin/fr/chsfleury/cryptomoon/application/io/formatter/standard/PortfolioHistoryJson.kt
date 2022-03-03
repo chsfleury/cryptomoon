@@ -1,5 +1,6 @@
-package fr.chsfleury.cryptomoon.application.io
+package fr.chsfleury.cryptomoon.application.io.formatter.standard
 
+import fr.chsfleury.cryptomoon.application.io.PortfolioSnapshotJson
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioHistory
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType

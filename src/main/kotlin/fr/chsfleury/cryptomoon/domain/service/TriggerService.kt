@@ -67,6 +67,7 @@ class TriggerService(
         return executedSet
     }
 
+    @Synchronized
     private fun lastTriggered(now: Instant): Map<String, Instant> {
         return if (now < lastTriggeredCacheExpiration) {
             if (lastTriggeredCache.isEmpty()) {

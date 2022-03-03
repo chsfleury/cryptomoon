@@ -124,6 +124,7 @@ object Cryptomoon : Logging {
             .get("/api/v1/portfolios", portfolioController::getPortfolioNames)
             .get("/api/v1/portfolios/{portfolio}", portfolioController::getPortfolio)
             .get("/api/v1/portfolios/{portfolio}/assets-distribution", chartController::getAssetDistribution)
+            .get("/api/v1/portfolios/{portfolio}/value-distribution", chartController::getAccountValueDistribution)
             .get("/api/v1/portfolios/{portfolio}/accounts", portfolioController::getPortfolioAccountNames)
             .get("/api/v1/portfolios/{portfolio}/accounts/{origin}", portfolioController::getPortfolioAccount)
             .get("/api/v1/portfolios/{portfolio}/delta", portfolioController::getPortfolioDelta)

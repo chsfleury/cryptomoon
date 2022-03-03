@@ -25,18 +25,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                 </a>
-
-                <a href="/">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                </a>
-
-                <a href="/">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M14.121 15.536c-1.171 1.952-3.07 1.952-4.242 0-1.172-1.953-1.172-5.119 0-7.072 1.171-1.952 3.07-1.952 4.242 0M8 10.5h4m-4 3h4m9-1.5a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </a>
             </div>
 
             <a href="/" class="h-16">
@@ -82,27 +70,111 @@
                     {% endfor %}
                 </div>
 
-                <div class="grid grid-cols-2 gap-8 mt-8 ">
+                <div id="valueHistory_{{ portfolio.name }}" class="mt-8 rounded-xl"></div>
+                <script type="text/javascript">
+                    Highcharts.getJSON('/api/v1/portfolios/main/history?days=15&format=highcharts&fiat=eur', function (data1) {
+                        Highcharts.stockChart('valueHistory_{{ portfolio.name }}', {
+                            chart: {
+                                backgroundColor: "#1c273c",
+                                height: '15%',
+                                margin: 30
+                            },
+                            title: false,
+                            navigator: {
+                                enabled: false
+                            },
+                            scrollbar: {
+                                enabled: false
+                            },
+                            yAxis: {
+                                gridLineColor: '#24324d',
+                                gridLineWidth: 2
+                            },
+                            plotOptions: {
+                                candlestick: {
+                                    color: '#f6465d',
+                                    lineColor: '#f6465d',
+                                    upColor: '#0ecb81',
+                                    upLineColor: '#0ecb81'
+                                }
+                            },
+
+                            rangeSelector: {
+                                buttons: [{
+                                    type: 'day',
+                                    count: 1,
+                                    text: '1D'
+                                }, {
+                                    type: 'day',
+                                    count: 7,
+                                    text: '7D'
+                                }, {
+                                    type: 'all',
+                                    count: 1,
+                                    text: 'All'
+                                }],
+                                selected: 1,
+                                inputEnabled: false
+                            },
+
+                            series: [{
+                                name: 'Value',
+                                type: 'candlestick',
+                                data: data1,
+                                tooltip: {
+                                    valueDecimals: 2
+                                }
+                            }]
+                        });
+                    });
+                </script>
+
+                <div class="grid grid-cols-3 gap-8 mt-8 ">
                     <table class="table table-fixed rounded-xl">
                         <thead>
                         <tr>
-                            <th class="text-left p-4 pl-6 w-48">Currency</th>
-                            <th class="text-left p-4 pl-6 w-16">Rank</th>
-                            <th class="text-left p-4 pl-6 w-32">Price</th>
-                            <th class="text-left p-4 pl-6 w-48">ATH</th>
-                            <th class="text-left p-4 pl-6 w-48">Balance</th>
-                            <th class="text-left p-4 pl-6 w-32">Value</th>
+                            <th class="text-left text-l py-3 px-4 w-24">Currency</th>
+                            <th class="text-left text-l py-3 px-4 w-8">Rank</th>
+                            <th class="text-left text-l py-3 px-4 w-24">Price</th>
+                            <th class="text-left text-l py-3 px-4 w-32">ATH</th>
+                            <th class="text-left text-l py-3 px-4 w-32">Balance</th>
+                            <th class="text-left text-l py-3 px-4 w-24">Value</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for asset in mergedStats.assetsByValueDesc %}
-                        <tr class="text-2xl">
-                            <td class="p-6"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
-                            <td class="p-6">{{ asset.rank }}</td>
-                            <td class="p-6">{{ asset.price | fiatMap('USD', false) }}</td>
-                            <td class="p-6">{{ asset.ath | fiatMap('USD', false, false) }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
-                            <td class="p-6">{{ asset.balance | balance }}</td>
-                            <td class="p-6">{{ asset.value | fiatMap('EUR') }}</td>
+                        <tr class="text-l">
+                            <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
+                            <td class="py-2 px-4">{{ asset.rank }}</td>
+                            <td class="py-2 px-4">{{ asset.price | fiatMap('USD', false) }}</td>
+                            <td class="py-2 px-4">{{ asset.ath | fiatMap('USD', false, false) }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
+                            <td class="py-2 px-4">{{ asset.balance | balance }}</td>
+                            <td class="py-2 px-4">{{ asset.value | fiatMap('EUR') }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <table class="table table-fixed rounded-xl">
+                        <thead>
+                        <tr>
+                            <th class="text-left text-l py-3 px-4 w-24">Currency</th>
+                            <th class="text-left text-l py-3 px-4 w-8">Rank</th>
+                            <th class="text-left text-l py-3 px-4 w-24">Price</th>
+                            <th class="text-left text-l py-3 px-4 w-32">ATH</th>
+                            <th class="text-left text-l py-3 px-4 w-32">Balance</th>
+                            <th class="text-left text-l py-3 px-4 w-24">Value</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for asset in mergedStats.assetsByValueDesc %}
+                        <tr class="text-l">
+                            <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
+                            <td class="py-2 px-4">{{ asset.rank }}</td>
+                            <td class="py-2 px-4">{{ asset.price | fiatMap('USD', false) }}</td>
+                            <td class="py-2 px-4">{{ asset.ath | fiatMap('USD', false, false) }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
+                            <td class="py-2 px-4">{{ asset.balance | balance }}</td>
+                            <td class="py-2 px-4">{{ asset.value | fiatMap('EUR') }}</td>
                         </tr>
                         {% endfor %}
                         </tbody>
@@ -119,17 +191,10 @@
                                         plotBorderWidth: null,
                                         plotShadow: false,
                                         type: 'pie',
-                                        backgroundColor: "#252d47",
+                                        backgroundColor: "#1c273c",
                                         height: '60%'
                                     },
-                                    title: {
-                                        text: 'Value Distribution',
-                                        style: {
-                                            fontFamily: 'Montserrat'
-                                        },
-                                        margin: 50,
-                                        y: 30
-                                    },
+                                    title: false,
                                     tooltip: {
                                         pointFormat: 'Value: <b>€ {point.y:.2f}</b>'
                                     },
@@ -157,68 +222,13 @@
                             });
                         </script>
 
-                        <div id="valueHistory_{{ portfolio.name }}" class="rounded-xl"></div>
-                        <script type="text/javascript">
-                            Highcharts.getJSON('/api/v1/portfolios/main/history?format=highcharts&fiat=eur', function (data1) {
-                                Highcharts.stockChart('valueHistory_{{ portfolio.name }}', {
-                                    chart: {
-                                        backgroundColor: "#252d47",
-                                        height: '60%'
-                                    },
-                                    title: {
-                                        text: 'Value History',
-                                        style: {
-                                            fontFamily: 'Montserrat'
-                                        },
-                                        margin: 50,
-                                        y: 30
-                                    },
-                                    plotOptions: {
-                                        candlestick: {
-                                            color: '#f6465d',
-                                            lineColor: '#f6465d',
-                                            upColor: '#0ecb81',
-                                            upLineColor: '#0ecb81'
-                                        }
-                                    },
-
-                                    rangeSelector: {
-                                        buttons: [{
-                                            type: 'day',
-                                            count: 1,
-                                            text: '1D'
-                                        }, {
-                                            type: 'day',
-                                            count: 7,
-                                            text: '7D'
-                                        }, {
-                                            type: 'all',
-                                            count: 1,
-                                            text: 'All'
-                                        }],
-                                        selected: 1,
-                                        inputEnabled: false
-                                    },
-
-                                    series: [{
-                                        name: 'Value',
-                                        type: 'candlestick',
-                                        data: data1,
-                                        tooltip: {
-                                            valueDecimals: 2
-                                        }
-                                    }]
-                                });
-                            });
-                        </script>
-
                         <div id="athHistory_{{ portfolio.name }}" class="rounded-xl"></div>
                         <script type="text/javascript">
                             Highcharts.getJSON('/api/v1/portfolios/main/history/ath?format=highcharts&fiat=eur', function (data) {
                                 // create the chart
                                 Highcharts.stockChart('athHistory_{{ portfolio.name }}', {
                                     chart: {
-                                        backgroundColor: "#252d47",
+                                        backgroundColor: "#1c273c",
                                         height: '60%'
                                     },
                                     title: {
@@ -229,7 +239,16 @@
                                         margin: 50,
                                         y: 30
                                     },
-
+                                    navigator: {
+                                        enabled: false
+                                    },
+                                    scrollbar: {
+                                        enabled: false
+                                    },
+                                    yAxis: {
+                                        gridLineColor: '#24324d',
+                                        gridLineWidth: 2
+                                    },
                                     rangeSelector: {
                                         buttons: [{
                                             type: 'day',

@@ -2,10 +2,7 @@ package fr.chsfleury.cryptomoon.application.controller
 
 import fr.chsfleury.cryptomoon.application.io.AccountJson
 import fr.chsfleury.cryptomoon.application.io.DeltaJson
-import fr.chsfleury.cryptomoon.application.io.PortfolioHistoryJson
 import fr.chsfleury.cryptomoon.application.io.PortfolioJson
-import fr.chsfleury.cryptomoon.domain.model.Fiat
-import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.service.*
 import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers.COINMARKETCAP
 import io.javalin.http.Context
