@@ -1,0 +1,47 @@
+{% macro balanceTable(assetsByValueDesc) %}
+<table class="table table-fixed rounded-xl">
+    <thead>
+    <tr>
+        <th class="text-left text-l py-3 px-4 w-24">Currency</th>
+        <th class="text-left text-l py-3 px-4 w-8">Rank</th>
+        <th class="text-left text-l py-3 px-4 w-24">Price</th>
+        <th class="text-left text-l py-3 px-4 w-32">ATH</th>
+        <th class="text-left text-l py-3 px-4 w-32">Balance</th>
+        <th class="text-left text-l py-3 px-4 w-24">Value</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for asset in assetsByValueDesc %}
+    <tr class="text-l">
+        <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
+        <td class="py-2 px-4">{{ asset.rank }}</td>
+        <td class="py-2 px-4">{{ asset.price | fiatMap('USD', false) }}</td>
+        <td class="py-2 px-4">{{ asset.ath | fiatMap('USD', false, false) }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
+        <td class="py-2 px-4">{{ asset.balance | balance }}</td>
+        <td class="py-2 px-4">{{ asset.value | fiatMap('EUR') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endmacro %}
+
+{% macro deltaTable(deltaBalances) %}
+<table class="table table-fixed rounded-xl">
+    <thead>
+    <tr>
+        <th class="text-left text-l py-3 px-4 w-24">Currency</th>
+        <th class="text-left text-l py-3 px-4 w-32">Delta</th>
+        <th class="text-left text-l py-3 px-4 w-24">Value</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for asset in deltaBalances %}
+    <tr class="text-l">
+        <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
+        <td class="py-2 px-4">{{ asset.balance | balance }}</td>
+        <td class="py-2 px-4">{{ asset.value | fiatMap('EUR') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endmacro %}

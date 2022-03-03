@@ -1,0 +1,166 @@
+{% macro valueHistory(portfolioName, dataUrl) %}
+<div id="valueHistory_{{ portfolioName }}" class="mt-8 rounded-xl"></div>
+<script type="text/javascript">
+    Highcharts.getJSON('{% autoescape false %}{{ dataUrl }}{% endautoescape %}', function (data1) {
+        Highcharts.stockChart('valueHistory_{{ portfolioName }}', {
+            chart: {
+                backgroundColor: "#1c273c",
+                height: '15%',
+                margin: 30
+            },
+            title: false,
+            navigator: {
+                enabled: false
+            },
+            scrollbar: {
+                enabled: false
+            },
+            yAxis: {
+                gridLineColor: '#24324d',
+                gridLineWidth: 2
+            },
+            plotOptions: {
+                candlestick: {
+                    color: '#f6465d',
+                    lineColor: '#f6465d',
+                    upColor: '#0ecb81',
+                    upLineColor: '#0ecb81'
+                }
+            },
+
+            rangeSelector: {
+                buttons: [{
+                    type: 'day',
+                    count: 1,
+                    text: '1D'
+                }, {
+                    type: 'day',
+                    count: 7,
+                    text: '7D'
+                }, {
+                    type: 'all',
+                    count: 1,
+                    text: 'All'
+                }],
+                selected: 1,
+                inputEnabled: false
+            },
+
+            series: [{
+                name: 'Value',
+                type: 'candlestick',
+                data: data1,
+                tooltip: {
+                    valueDecimals: 2
+                }
+            }]
+        });
+    });
+</script>
+{% endmacro %}
+
+{% macro athHistory(portfolioName, dataUrl) %}
+<div id="athHistory_{{ portfolio.name }}" class="rounded-xl"></div>
+<script type="text/javascript">
+    Highcharts.getJSON('{% autoescape false %}{{ dataUrl }}{% endautoescape %}', function (data) {
+        // create the chart
+        Highcharts.stockChart('athHistory_{{ portfolio.name }}', {
+            chart: {
+                backgroundColor: "#1c273c",
+                height: '60%'
+            },
+            title: {
+                text: 'ATH History',
+                style: {
+                    fontFamily: 'Montserrat'
+                },
+                margin: 50,
+                y: 30
+            },
+            navigator: {
+                enabled: false
+            },
+            scrollbar: {
+                enabled: false
+            },
+            yAxis: {
+                gridLineColor: '#24324d',
+                gridLineWidth: 2
+            },
+            rangeSelector: {
+                buttons: [{
+                    type: 'day',
+                    count: 3,
+                    text: '3D'
+                }, {
+                    type: 'day',
+                    count: 7,
+                    text: '7D'
+                }, {
+                    type: 'all',
+                    count: 1,
+                    text: 'All'
+                }],
+                selected: 1,
+                inputEnabled: false
+            },
+
+            series: [{
+                name: 'ATH',
+                type: 'line',
+                data: data,
+                tooltip: {
+                    valueDecimals: 2
+                }
+            }]
+        });
+    });
+</script>
+{% endmacro %}
+
+{% macro pieChart(name, dataUrl) %}
+<div id="{{ name }}" class="rounded-xl"></div>
+<script type="text/javascript">
+    Highcharts.getJSON('{% autoescape false %}{{ dataUrl }}{% endautoescape %}', function (data) {
+        Highcharts.chart('{{ name }}', {
+            chart: {
+                plotBackgroundColor: null,
+                plotBorderWidth: null,
+                plotShadow: false,
+                type: 'pie',
+                backgroundColor: "#1c273c",
+                height: '60%'
+            },
+            credits: {
+                enabled: false
+            },
+            title: false,
+            tooltip: {
+                pointFormat: 'Value: <b>€ {point.y:.2f}</b>'
+            },
+            accessibility: {
+                point: {
+                    valueSuffix: '%'
+                }
+            },
+            plotOptions: {
+                pie: {
+                    borderWidth: 2,
+                    allowPointSelect: true,
+                    cursor: 'pointer',
+                    dataLabels: {
+                        enabled: true,
+                        format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                        color: '#ffffff'
+                    }
+                }
+            },
+            series: [{
+                name: 'Currencies',
+                colorByPoint: true,
+                data: data
+            }]
+        });
+    });
+</script>
+{% endmacro %}

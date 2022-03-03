@@ -24,6 +24,7 @@ object HighchartsFormatter: ChartDataFormatter {
     override fun accountValueDistribution(portfolioStats: PortfolioStats, fiat: Fiat): List<Point> = portfolioStats.accountStats.asSequence()
         .filter { it.total[fiat] != null }
         .map { Point(it.origin, it.total.clean()[fiat]!!.toDouble()) }
+        .sortedByDescending { it.y }
         .toList()
 
     override fun valueHistory(portfolioHistory: PortfolioHistory): List<List<Any?>> {
