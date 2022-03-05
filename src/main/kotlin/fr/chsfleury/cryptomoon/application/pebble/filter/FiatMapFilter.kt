@@ -37,8 +37,8 @@ object FiatMapFilter: Filter {
                 USD -> "$"
             }
             val value: String = when {
-                round -> round0 .format(decimal)
-                decimal < BigDecimal.ONE -> round6.format(decimal)
+                round -> round0.format(decimal)
+                decimal.abs() < BigDecimal.ONE -> round6.format(decimal)
                 else -> round2.format(decimal)
             }
             "$fiat $value"

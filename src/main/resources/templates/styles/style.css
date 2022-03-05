@@ -24,13 +24,20 @@ body {
 
 #sidebar a {
     color: #A8ABB5;
-
 }
 
 .card, .table {
     background-color: #1c273c;
 }
 
-.table tr {
-    border-bottom: 3px solid #24324d;
+.table thead tr {
+    border-top: none;
+}
+
+.table tbody tr {
+    border-top: 3px solid #24324d;
+}
+
+tbody th {
+    background-color: #192235;
 }

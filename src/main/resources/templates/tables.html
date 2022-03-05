@@ -1,5 +1,5 @@
 {% macro balanceTable(assetsByValueDesc) %}
-<table class="table table-fixed rounded-xl">
+<table class="w-full table table-fixed rounded-xl">
     <thead>
     <tr>
         <th class="text-left text-l py-3 px-4 w-24">Currency</th>
@@ -26,20 +26,23 @@
 {% endmacro %}
 
 {% macro deltaTable(deltaBalances) %}
-<table class="table table-fixed rounded-xl">
+<table class="w-full table table-fixed rounded-xl">
     <thead>
     <tr>
-        <th class="text-left text-l py-3 px-4 w-24">Currency</th>
-        <th class="text-left text-l py-3 px-4 w-32">Delta</th>
-        <th class="text-left text-l py-3 px-4 w-24">Value</th>
+        <th class="text-left text-l py-3 px-4 w-4/12">Currency</th>
+        <th class="text-left text-l py-3 px-4 w-4/12">Delta (7d)</th>
+        <th class="text-left text-l py-3 px-4 w-4/12">Value</th>
     </tr>
     </thead>
     <tbody>
-    {% for asset in deltaBalances %}
+    <tr>
+        <th class="py-2 text-xl" colspan="3">{{ deltaBalances.total | fiatMap('EUR', false, false) }}</th>
+    </tr>
+    {% for delta in deltaBalances.deltas %}
     <tr class="text-l">
-        <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
-        <td class="py-2 px-4">{{ asset.balance | balance }}</td>
-        <td class="py-2 px-4">{{ asset.value | fiatMap('EUR') }}</td>
+        <td class="py-2 px-4"><img src="{{ delta.currency.logoUrl }}" alt="{{ delta.currency.symbol }}" width="32px" class="inline"/> {{ delta.currency.symbol }}</td>
+        <td class="py-2 px-4">{{ delta.amount | balance }}</td>
+        <td class="py-2 px-4">{{ delta.value | fiatMap('EUR', false, false) }}</td>
     </tr>
     {% endfor %}
     </tbody>

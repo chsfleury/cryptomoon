@@ -86,6 +86,7 @@ object Cryptomoon : Logging {
         val fiatController = FiatController(quoteService)
         val chartController = ChartController(portfolioService, quoteService, athService, listOf(HighchartsFormatter))
         val athController = AthController(tickerService[Tickers.LIVECOINWATCH] as ATHTicker)
+        val importController = ImportController()
 
         val javalin = Javalin.create(this::configureJavalin)
 
@@ -117,7 +118,7 @@ object Cryptomoon : Logging {
 
         // PAGES
         configureRenderer()
-        val dashboardPage = DashboardPage(portfolioService, quoteService, athService)
+        val dashboardPage = DashboardPage(portfolioService, quoteService, athService, balanceService)
 
         javalin
             .get("/", dashboardPage::getDashboard)
@@ -135,6 +136,7 @@ object Cryptomoon : Logging {
             .get("/api/v1/fiats", fiatController::getFiatPair)
             .get("/api/v1/fiats/last", fiatController::getLastFiatPair)
             .get("/api/v1/aths/{symbol}", athController::getAth)
+            .post("/api/v1/import/binance/staking", importController::extractBalanceFromBinanceStakingExport)
 
         javalin.start(port)
         // LISTENERS

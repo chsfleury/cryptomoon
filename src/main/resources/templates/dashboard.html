@@ -70,10 +70,14 @@
 
                 {{ valueHistory(portfolio.name, "/api/v1/portfolios/main/history?days=15&format=highcharts&fiat=eur") }}
 
-                <div class="grid grid-cols-4 gap-8 mt-8 ">
-                    {{ balanceTable(mergedStats.assetsByValueDesc) }}
+                <div class="grid grid-cols-5 gap-8 mt-8 ">
+                    <div class="col-span-2">
+                        {{ balanceTable(mergedStats.assetsByValueDesc) }}
+                    </div>
 
-                    {{ deltaTable(mergedStats.assetsByValueDesc) }}
+                    <div>
+                        {{ deltaTable(deltaMap.get(portfolio.name)) }}
+                    </div>
 
                     <div class="flex flex-col gap-8">
                         {{ pieChart("accountDistribution_#{portfolio.name}", "/api/v1/portfolios/main/value-distribution?format=highcharts&fiat=eur") }}
@@ -83,7 +87,7 @@
                     <div class="flex flex-col gap-8">
                         {{ pieChart("valueDistribution_#{portfolio.name}", "/api/v1/portfolios/main/assets-distribution?format=highcharts&fiat=eur") }}
 
-                        {{ athHistory(portfolio.name, "/api/v1/portfolios/main/history/ath?format=highcharts&fiat=eur") }}
+                        {{ athHistory(portfolio.name, "/api/v1/portfolios/main/history/ath?days=15&format=highcharts&fiat=eur") }}
                     </div>
                 </div>
             </section>
