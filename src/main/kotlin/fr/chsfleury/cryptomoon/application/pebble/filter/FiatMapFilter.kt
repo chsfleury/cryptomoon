@@ -17,12 +17,20 @@ object FiatMapFilter: Filter {
     override fun getArgumentNames() = listOf("key", "round", "errorOnMissing")
 
     override fun apply(input: Any?, args: Map<String, Any>, self: PebbleTemplate, context: EvaluationContext, lineNumber: Int): String {
+        val errorOnMissing = args["errorOnMissing"] as? Boolean ?: false
+        if (input == null) {
+            return if (errorOnMissing) {
+                error("input is null on line $lineNumber")
+            } else {
+                ""
+            }
+        }
         if (input !is FiatMap) {
             error("input is not a FiatMap on line $lineNumber")
         }
         val keyString = args["key"] as? String ?: error("missing key param on line $lineNumber")
         val round = args["round"] as? Boolean ?: true
-        val errorOnMissing = args["errorOnMissing"] as? Boolean ?: false
+
         val key = Fiat.valueOf(keyString)
         val decimal = input[key]
         return if (decimal == null) {
