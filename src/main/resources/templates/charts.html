@@ -1,12 +1,15 @@
 {% macro valueHistory(portfolioName, dataUrl) %}
-<div id="valueHistory_{{ portfolioName }}" class="mt-8 rounded-xl"></div>
+<div id="valueHistory_{{ portfolioName }}" class="mt-3 lg:mt-8 rounded-xl"></div>
 <script type="text/javascript">
     Highcharts.getJSON('{% autoescape false %}{{ dataUrl }}{% endautoescape %}', function (data1) {
         Highcharts.stockChart('valueHistory_{{ portfolioName }}', {
             chart: {
                 backgroundColor: "#1c273c",
-                height: '15%',
+                height: '350px',
                 margin: 30
+            },
+            credits: {
+                enabled: false
             },
             title: false,
             navigator: {
@@ -68,6 +71,9 @@
             chart: {
                 backgroundColor: "#1c273c",
                 height: '60%'
+            },
+            credits: {
+                enabled: false
             },
             title: {
                 text: 'ATH History',

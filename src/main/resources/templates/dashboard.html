@@ -6,8 +6,9 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Portfolios</title>
-        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="/assets/js/tailwindcss.js"></script>
 <!--        <script src="https://code.highcharts.com/highcharts.js"></script>-->
         <script src="https://code.highcharts.com/stock/highstock.js"></script>
         <script src="https://code.highcharts.com/stock/modules/data.js"></script>
@@ -21,39 +22,35 @@
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
     </head>
     <body>
-        <nav id="sidebar" class="fixed inset-y-0 left-0 w-28 pt-3 flex flex-col items-center justify-between gap-y-8">
-            <div class="flex flex-col items-center gap-y-8">
-                <img src="/assets/cryptomoon.png" alt="Cryptomoon" width="56" height="55"/>
-                <a href="/" class="active w-28 h-16">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <header id="topbar" class="z-50 fixed left-0 right-0 top-0 h-20 flex flex-row items-center justify-between py-4 px-8">
+            <div class="flex flex-row items-center justify-start alt-color">
+                <img src="/assets/cryptomoon.png" alt="Cryptomoon" width="56" height="55" class="mr-8"/>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                {% for portfolio in portfolios %}
+                <a href="/" class="px-5 font-semibold portfolio-name">{{ portfolio.name }}</a>
+                {% endfor %}
+            </div>
+            <div class="flex flex-row items-center justify-end">
+                <div class="px-4 font-semibold">BTC $ {{ bitcoinPriceUSD | numberformat("#.##") }}</div>
+                <div class="px-4 font-semibold">Total {{ mergedMap.get('main').total | fiatMap('EUR') }}</div>
+                <a href="/" class="w-20 h-16">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
                 </a>
             </div>
-
-            <a href="/" class="h-16">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-            </a>
-        </nav>
-
-        <header id="topbar" class="z-50 fixed left-28 right-0 top-0 h-20 flex flex-row items-center justify-end py-4 px-8">
-            <div class="px-4 font-semibold">BTC $ {{ bitcoinPriceUSD | numberformat("#.##") }}</div>
-            <div class="px-4 font-semibold">Total {{ mergedMap.get('main').total | fiatMap('EUR') }}</div>
         </header>
 
-        <main class="ml-28 mt-20 p-8">
-            <h1 class="text-4xl mb-3 font-semibold">Portfolio{% if portfolios|length > 1 %}s{% endif %}</h1>
-
+        <main class="mt-20 px-2 py-3 lg:p-8">
             {% for portfolio in portfolios %}
             {% set mergedStats = mergedMap.get(portfolio.name) %}
             <section>
-                {% if portfolios|length > 1 %}
-                <h2 class="text-3xl mb-2 font-semibold">{{ portfolio.name }}</h2>
-                {% endif %}
-
-                <div class="flex flex-wrap gap-8">
+                <div class="flex flex-wrap gap-x-2 gap-y-3 lg:gap-8">
                     <div class="card w-64 rounded-xl p-5">
                         <h3 class="text-xl mb-2">Total Balance</h3>
                         <span class="text-3xl font-semibold">{{ portfolio.total | fiatMap('EUR') }}</span>
@@ -70,8 +67,8 @@
 
                 {{ valueHistory(portfolio.name, "/api/v1/portfolios/main/history?days=15&format=highcharts&fiat=eur") }}
 
-                <div class="grid grid-cols-5 gap-8 mt-8 ">
-                    <div class="col-span-2">
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 lg:gap-8 mt-2 lg:mt-8 ">
+                    <div class="col-span-1 lg:col-span-2">
                         {{ balanceTable(mergedStats.assetsByValueDesc) }}
                     </div>
 
@@ -79,12 +76,10 @@
                         {{ deltaTable(deltaMap.get(portfolio.name)) }}
                     </div>
 
-                    <div class="flex flex-col gap-8">
-                        {{ pieChart("accountDistribution_#{portfolio.name}", "/api/v1/portfolios/main/value-distribution?format=highcharts&fiat=eur") }}
-                    </div>
-
                     {% set distribution = currencyDistribution.get(portfolio.name) %}
-                    <div class="flex flex-col gap-8">
+                    <div class="flex flex-col gap-x-2 gap-y-3 lg:gap-8">
+                        {{ pieChart("accountDistribution_#{portfolio.name}", "/api/v1/portfolios/main/value-distribution?format=highcharts&fiat=eur") }}
+
                         {{ pieChart("valueDistribution_#{portfolio.name}", "/api/v1/portfolios/main/assets-distribution?format=highcharts&fiat=eur") }}
 
                         {{ athHistory(portfolio.name, "/api/v1/portfolios/main/history/ath?days=15&format=highcharts&fiat=eur") }}

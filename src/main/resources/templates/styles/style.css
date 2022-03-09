@@ -5,25 +5,13 @@ body {
     font-family: 'Montserrat', sans-serif;
 }
 
-#sidebar {
-    background-color: #252D47;
-}
-
 #topbar {
-    background-color: #3c4564;
+    background-color: #192235;
+    border-bottom: 1px solid #24324d;
 }
 
-#sidebar a.active {
-    color: #7676FF;
-    border-left: 6px solid #7676FF;
-    padding-top: 12px;
-    padding-left: 28px;
-    width: 7rem;
-    height: 4rem;
-}
-
-#sidebar a {
-    color: #A8ABB5;
+#topbar svg {
+    margin: auto;
 }
 
 .card, .table {
@@ -40,4 +28,20 @@ body {
 
 tbody th {
     background-color: #192235;
+}
+
+.alt-color {
+    color: #74a3b9;
+}
+
+a.portfolio-name {
+    color: #0168fa;
+}
+
+a.portfolio-name:first-letter {
+    text-transform: uppercase;
+}
+
+a.portfolio-name:hover {
+    color: #ffffff;
 }

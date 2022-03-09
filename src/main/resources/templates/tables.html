@@ -2,21 +2,21 @@
 <table class="w-full table table-fixed rounded-xl">
     <thead>
     <tr>
-        <th class="text-left text-l py-3 px-4 w-24">Currency</th>
-        <th class="text-left text-l py-3 px-4 w-8">Rank</th>
-        <th class="text-left text-l py-3 px-4 w-24">Price</th>
-        <th class="text-left text-l py-3 px-4 w-32">ATH</th>
-        <th class="text-left text-l py-3 px-4 w-32">Balance</th>
-        <th class="text-left text-l py-3 px-4 w-24">Value</th>
+        <th class="text-left text-l py-3 px-4 w-1/4 lg:w-2/12">Currency</th>
+        <th class="text-left text-l py-3 px-4 lg:w-1/12 hidden lg:table-cell">Rank</th>
+        <th class="text-left text-l py-3 px-4 w-1/4 lg:w-2/12">Price</th>
+        <th class="text-left text-l py-3 px-4 lg:w-3/12 hidden lg:table-cell">ATH</th>
+        <th class="text-left text-l py-3 px-4 w-1/4 lg:w-2/12">Balance</th>
+        <th class="text-left text-l py-3 px-4 w-1/4 lg:w-2/12">Value</th>
     </tr>
     </thead>
     <tbody>
     {% for asset in assetsByValueDesc %}
     <tr class="text-l">
-        <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="inline"/> {{ asset.currency.symbol }}</td>
-        <td class="py-2 px-4">{{ asset.rank }}</td>
+        <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" width="32px" class="hidden lg:inline"/> {{ asset.currency.symbol }}</td>
+        <td class="py-2 px-4 hidden lg:table-cell">{{ asset.rank }}</td>
         <td class="py-2 px-4">{{ asset.price | fiatMap('USD', false) }}</td>
-        <td class="py-2 px-4">{{ asset.ath | fiatMap('USD', false, false) }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
+        <td class="py-2 px-4 hidden lg:table-cell">{{ asset.ath | fiatMap('USD', false, false) }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
         <td class="py-2 px-4">{{ asset.balance | balance }}</td>
         <td class="py-2 px-4">{{ asset.value | fiatMap('EUR') }}</td>
     </tr>
