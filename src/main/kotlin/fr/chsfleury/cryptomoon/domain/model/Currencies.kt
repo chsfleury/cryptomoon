@@ -2,7 +2,7 @@ package fr.chsfleury.cryptomoon.domain.model
 
 enum class Currencies(
     val symbol: String,
-    val stablecoin: Boolean = false,
+    stablecoin: Boolean = false,
     val fiat: Boolean = false
 ) {
     ADA("ADA"),
@@ -22,13 +22,15 @@ enum class Currencies(
     EUR("EUR", fiat = true),
     USD("USD", fiat = true);
 
+    val currency = Currency(symbol, fiat, stablecoin, "/assets/currencies/$symbol.png")
+
     companion object {
         private const val LIVECOINWATCH_LOGOS_URL = "https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/%s.png"
 
         operator fun get(symbol: String): Currency {
             return values()
                 .firstOrNull { it.symbol == symbol.uppercase() }
-                ?.let { Currency(it.symbol, it.fiat, it.stablecoin, "/assets/currencies/${it.symbol}.png") }
+                ?.let(Currencies::currency)
                 ?: Currency(symbol, false, false, LIVECOINWATCH_LOGOS_URL.format(symbol.lowercase()))
         }
     }

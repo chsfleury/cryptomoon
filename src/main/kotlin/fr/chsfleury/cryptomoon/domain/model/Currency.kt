@@ -1,6 +1,6 @@
 package fr.chsfleury.cryptomoon.domain.model
 
-class Currency (
+open class Currency (
     val symbol: String,
     val fiat: Boolean,
     val stable: Boolean,
@@ -22,6 +22,4 @@ class Currency (
     }
 
     override fun toString() = symbol
-
-
 }
