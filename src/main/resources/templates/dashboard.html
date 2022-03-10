@@ -65,7 +65,7 @@
                     </div>
                 </div>
 
-                {{ valueHistory(portfolio.name, "/api/v1/portfolios/main/history?days=15&format=highcharts&fiat=eur") }}
+                {{ valueHistory(portfolio.name, "/api/v1/portfolios/main/history?days=45&format=highcharts&fiat=eur") }}
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 lg:gap-8 mt-2 lg:mt-8 ">
                     <div class="col-span-1 lg:col-span-2">
@@ -82,7 +82,7 @@
 
                         {{ pieChart("valueDistribution_#{portfolio.name}", "/api/v1/portfolios/main/assets-distribution?format=highcharts&fiat=eur") }}
 
-                        {{ athHistory(portfolio.name, "/api/v1/portfolios/main/history/ath?days=15&format=highcharts&fiat=eur") }}
+                        {{ athHistory(portfolio.name, "/api/v1/portfolios/main/history/ath?days=60&format=highcharts&fiat=eur") }}
                     </div>
                 </div>
             </section>
