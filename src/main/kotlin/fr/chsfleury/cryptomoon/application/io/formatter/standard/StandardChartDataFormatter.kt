@@ -8,8 +8,8 @@ import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 object StandardChartDataFormatter: ChartDataFormatter {
     override val formatName = "standard"
 
-    override fun assetDistributionData(portfolioStats: PortfolioStats): List<KeyedValue<String>> = portfolioStats.mergedAccountStats.assetsByValueDesc
-        .map { KeyedValue(it.currency.symbol, it.value[Fiat.USD]?.toDouble() ?: 0.0) }
+    override fun assetDistributionData(portfolioStats: PortfolioStats, fiat: Fiat): List<KeyedValue<String>> = portfolioStats.mergedAccountStats.assetsByValueDesc
+        .map { KeyedValue(it.currency.symbol, it.value[fiat]?.toDouble() ?: 0.0) }
 
     override fun accountValueDistribution(portfolioStats: PortfolioStats, fiat: Fiat): List<KeyedValue<String>> = portfolioStats.accountStats.asSequence()
         .filter { it.total[fiat] != null }

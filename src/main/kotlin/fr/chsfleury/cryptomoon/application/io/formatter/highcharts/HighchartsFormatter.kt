@@ -18,8 +18,8 @@ object HighchartsFormatter: ChartDataFormatter {
     private const val HOUR_IN_MILLIS = 3_600_000
     override val formatName = "highcharts"
 
-    override fun assetDistributionData(portfolioStats: PortfolioStats): List<Point> = portfolioStats.mergedAccountStats.assetsByValueDesc
-        .map { Point(it.currency.symbol, it.value[Fiat.USD]?.toDouble() ?: 0.0) }
+    override fun assetDistributionData(portfolioStats: PortfolioStats, fiat: Fiat): List<Point> = portfolioStats.mergedAccountStats.assetsByValueDesc
+        .map { Point(it.currency.symbol, it.value[fiat]?.toDouble() ?: 0.0) }
 
     override fun accountValueDistribution(portfolioStats: PortfolioStats, fiat: Fiat): List<Point> = portfolioStats.accountStats.asSequence()
         .filter { it.total[fiat] != null }

@@ -8,7 +8,7 @@ interface ChartDataFormatter {
 
     val formatName: String
 
-    fun assetDistributionData(portfolioStats: PortfolioStats): Any?
+    fun assetDistributionData(portfolioStats: PortfolioStats, fiat: Fiat): Any?
 
     fun accountValueDistribution(portfolioStats: PortfolioStats, fiat: Fiat): Any?
 

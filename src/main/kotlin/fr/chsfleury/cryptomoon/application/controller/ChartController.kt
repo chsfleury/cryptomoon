@@ -7,6 +7,7 @@ import fr.chsfleury.cryptomoon.domain.model.PortfolioHistory
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.ATH
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType.CURRENT
+import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.domain.service.ATHService
 import fr.chsfleury.cryptomoon.domain.service.PortfolioService
 import fr.chsfleury.cryptomoon.domain.service.QuoteService
@@ -21,23 +22,25 @@ class ChartController(
 ) {
 
     fun getAssetDistribution(ctx: Context) {
-        val portfolioName = ctx.pathParam("portfolio")
-        val portfolio = portfolioService.getPortfolio(portfolioName, false)
-        val portfolioStats = portfolio.stats(quoteService, athService, Tickers.COINMARKETCAP)
-
+        val (fiat, portfolioStats) = getFiatAndPortfolioStats(ctx)
         formatAndRespond(ctx) {
-            it.assetDistributionData(portfolioStats)
+            it.assetDistributionData(portfolioStats, fiat)
         }
     }
 
     fun getAccountValueDistribution(ctx: Context) {
+        val (fiat, portfolioStats) = getFiatAndPortfolioStats(ctx)
+        formatAndRespond(ctx) {
+            it.accountValueDistribution(portfolioStats, fiat)
+        }
+    }
+
+    private fun getFiatAndPortfolioStats(ctx: Context): Pair<Fiat, PortfolioStats> {
         val portfolioName = ctx.pathParam("portfolio")
         val fiat = ctx.queryParam("fiat")?.let { Fiat.valueOf(it.uppercase()) } ?: Fiat.EUR
         val portfolio = portfolioService.getPortfolio(portfolioName, false)
         val portfolioStats = portfolio.stats(quoteService, athService, Tickers.COINMARKETCAP)
-        formatAndRespond(ctx) {
-            it.accountValueDistribution(portfolioStats, fiat)
-        }
+        return Pair(fiat, portfolioStats)
     }
 
     fun getPortfolioHistory(ctx: Context) {
