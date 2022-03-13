@@ -1,6 +1,7 @@
 package fr.chsfleury.cryptomoon.domain.model.stats
 
 import fr.chsfleury.cryptomoon.domain.model.Currency
+import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.utils.FiatMap
 import java.math.BigDecimal
 
@@ -12,4 +13,8 @@ class AssetStats (
     val value: FiatMap,
     val ath: FiatMap,
     val athRatio: Double?
-)
+) {
+    override fun toString(): String {
+        return "AssetStats(currency=$currency, rank=$rank, balance=$balance, price=${price[Fiat.USD]}, value=${value[Fiat.USD]})"
+    }
+}

@@ -12,4 +12,8 @@ class AccountStats (
 ) {
     val assetsByValueDesc: List<AssetStats>
         get() = assetStats.sortedByDescending { it.value[Fiat.USD] }
+
+    override fun toString(): String {
+        return "AccountStats(origin='$origin', total=$total, timestamp=$timestamp)"
+    }
 }
