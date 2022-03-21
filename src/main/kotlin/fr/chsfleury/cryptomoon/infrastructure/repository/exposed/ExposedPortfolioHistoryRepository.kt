@@ -20,30 +20,25 @@ object ExposedPortfolioHistoryRepository: PortfolioHistoryRepository {
             PortfolioHistoryEntity.insert {
                 it[name] = portfolioName
                 it[type] = portfolioValueType.name
-                it[fiat] = portfolioValue.fiat.name
                 it[at] = portfolioValue.at
-                it[value] = portfolioValue.amount
+                it[value] = portfolioValue.valueUSD
             }
         }
     }
 
-    override fun findBy(portfolioName: String, portfolioValueType: PortfolioValueType, fiat: Fiat, days: Int): PortfolioHistory {
+    override fun findBy(portfolioName: String, portfolioValueType: PortfolioValueType, days: Int): PortfolioHistory {
         val instantMin = Instant.now().minus(days.toLong(), ChronoUnit.DAYS)
         return transaction {
             val snapshots = PortfolioHistoryEntity.select {
                 PortfolioHistoryEntity.type eq portfolioValueType.name and
-                        (PortfolioHistoryEntity.at greaterEq instantMin) and
-                        (PortfolioHistoryEntity.fiat eq fiat.name)
+                        (PortfolioHistoryEntity.at greaterEq instantMin)
             }.map {
                 PorfolioValueSnapshot(
-                    Fiat[it[PortfolioHistoryEntity.fiat]],
                     it[PortfolioHistoryEntity.at],
                     it[PortfolioHistoryEntity.value]
                 )
             }
-            PortfolioHistory(portfolioValueType, fiat, snapshots)
+            PortfolioHistory(portfolioValueType, snapshots)
         }
-
     }
-
 }

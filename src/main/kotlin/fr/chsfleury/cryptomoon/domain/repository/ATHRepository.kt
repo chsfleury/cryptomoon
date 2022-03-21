@@ -1,11 +1,11 @@
 package fr.chsfleury.cryptomoon.domain.repository
 
-import fr.chsfleury.cryptomoon.domain.model.ATH
+import fr.chsfleury.cryptomoon.domain.model.impl.SimpleATH
 
 interface ATHRepository {
 
-    fun getATHs(): Set<ATH>
-    fun save(ath: ATH)
-    fun save(aths: Collection<ATH>)
+    fun getATHs(): Set<SimpleATH>
+    fun save(ath: SimpleATH)
+    fun save(aths: Collection<SimpleATH>)
 
 }

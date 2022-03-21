@@ -2,42 +2,32 @@ package fr.chsfleury.cryptomoon.domain.model
 
 import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
 import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
-import fr.chsfleury.cryptomoon.domain.service.ATHService
-import fr.chsfleury.cryptomoon.domain.service.QuoteService
-import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
-import fr.chsfleury.cryptomoon.utils.FiatMap
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
-import java.math.BigDecimal
 
 class Portfolio(
     val name: String,
     val accounts: Set<AccountSnapshot>
 ) {
-    val mergedAccount: AccountSnapshot by lazy {
+    private val mergedAccount: AccountSnapshot by lazy {
         AccountSnapshot.merge(accounts, AccountSnapshot.ALL) ?: AccountSnapshot.empty()
     }
 
     private var portfolioStats: PortfolioStats? = null
 
-    fun stats(quoteService: QuoteService, athService: ATHService, ticker: Tickers): PortfolioStats = portfolioStats ?: computeStats(quoteService, athService, ticker)
+    fun stats(marketData: MarketData): PortfolioStats = portfolioStats ?: computeStats(marketData)
 
-    private fun computeStats(quoteService: QuoteService, athService: ATHService, ticker: Tickers): PortfolioStats {
+    private fun computeStats(marketData: MarketData): PortfolioStats {
         log.debug("computing {} portfolio stats", name)
-        val total = FiatMap()
-        val accountStatsSet = accounts.mapTo(mutableSetOf()) { it.stats(quoteService, athService, ticker) }
+        val total = Sum()
+        val accountStatsSet = accounts.mapTo(mutableSetOf()) { it.stats(marketData) }
         accountStatsSet.forEach { total += it.total }
-        val mergedAccountStats = mergedAccount.stats(quoteService, athService, ticker)
+        val mergedAccountStats = mergedAccount.stats(marketData)
         val athTotalInUSD = accountStatsSet.asSequence()
             .flatMap(AccountStats::assetStats)
-            .map { assetStats -> assetStats.balance * (athService[assetStats.currency] ?: BigDecimal.ZERO) }
+            .map { assetStats -> assetStats.balance.multiply(assetStats.athUSD) }
             .sumOf { it }
-        val athFiatMap = FiatMap()
-        athFiatMap[Fiat.USD] = athTotalInUSD
-        quoteService.usdToEur()?.also { usdToEur ->
-            athFiatMap[Fiat.EUR] = athTotalInUSD * usdToEur
-        }
-        return PortfolioStats(name, total, athFiatMap, accountStatsSet, mergedAccountStats)
+        return PortfolioStats(name, total.value(), athTotalInUSD, accountStatsSet, mergedAccountStats)
             .also { portfolioStats = it  }
     }
 

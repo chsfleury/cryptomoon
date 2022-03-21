@@ -1,45 +1,45 @@
 package fr.chsfleury.cryptomoon.domain.service
 
-import fr.chsfleury.cryptomoon.domain.model.Balance
-import fr.chsfleury.cryptomoon.domain.model.DeltaBalance
-import fr.chsfleury.cryptomoon.domain.model.Fiat
-import fr.chsfleury.cryptomoon.domain.model.Quotes
+import fr.chsfleury.cryptomoon.domain.model.*
 import fr.chsfleury.cryptomoon.domain.repository.BalanceRepository
-import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers.COINMARKETCAP
-import fr.chsfleury.cryptomoon.utils.FiatMap
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 class BalanceService(
-    private val quoteService: QuoteService,
+    private val currencyService: CurrencyService,
     private val balanceRepository: BalanceRepository
 ) {
     fun getBalance(origins: Collection<String>, daysAgo: Int = 0): List<Balance> = balanceRepository.getBalance(origins, daysAgo)
 
     fun getDelta(origins: Collection<String>, daysAgo: Int = 7): List<DeltaBalance> {
         val delta = balanceRepository.getDelta(origins, daysAgo)
-        val usdToEuro = quoteService.usdToEur()
-        val quotes = quoteService[COINMARKETCAP]
-        return quotes?.let { q ->
-            usdToEuro?.let { u2e ->
-                populateDeltaBalances(delta, q, u2e)
-            }
-        } ?: emptyList()
+        val quotesAndRates = currencyService.marketData()
+        return populateDeltaBalances(delta, quotesAndRates)
     }
 
     private fun populateDeltaBalances(
         delta: List<Balance>,
-        quotes: Quotes,
-        usdToEuro: BigDecimal
+        marketData: MarketData,
     ): List<DeltaBalance> {
-        return delta.map {
-            val valueMap = quotes[it.currency]?.price?.let { priceUSD ->
-                val valueUSD = priceUSD.multiply(it.amount)
-                FiatMap.of(
-                    Fiat.USD to valueUSD,
-                    Fiat.EUR to valueUSD.multiply(usdToEuro)
-                )
-            }
-            DeltaBalance(it.currency, it.amount, valueMap)
+        return delta.mapNotNull {
+            when (it.currency) {
+                Currencies.EUR.currency -> computeEuroValue(it.amount, marketData.rates[Fiat.EUR])
+                Currencies.USD.currency -> it.amount
+                else -> computeCryptoValue(marketData, it)
+            }?.let { v -> DeltaBalance(it.currency, it.amount, v) }
         }
+    }
+
+    private fun computeEuroValue(
+        balance: BigDecimal,
+        usdToEuro: BigDecimal?
+    ): BigDecimal? = if (usdToEuro == null) null else balance.divide(usdToEuro, RoundingMode.HALF_EVEN)
+
+    private fun computeCryptoValue(
+        marketData: MarketData,
+        balance: Balance
+    ): BigDecimal? {
+        val priceUSD = marketData[balance.currency]?.priceUSD ?: return null
+        return priceUSD.multiply(balance.amount)
     }
 }

@@ -2,15 +2,10 @@ package fr.chsfleury.cryptomoon.domain.service
 
 import fr.chsfleury.cryptomoon.domain.listener.AccountUpdateListener
 import fr.chsfleury.cryptomoon.domain.model.*
-import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
-import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.domain.repository.PortfolioHistoryRepository
 import fr.chsfleury.cryptomoon.domain.repository.PortfolioRepository
-import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
-import fr.chsfleury.cryptomoon.utils.FiatMap
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
-import java.math.BigDecimal
 
 class PortfolioService(
     portfolioRepository: PortfolioRepository,
@@ -64,8 +59,8 @@ class PortfolioService(
         return portfolioConfiguration[portfolioName] ?: error("unknown portfolio")
     }
     
-    fun getHistory(portfolioName: String, portfolioValueType: PortfolioValueType, fiat: Fiat, days: Int): PortfolioHistory {
-        return portfolioHistoryRepository.findBy(portfolioName, portfolioValueType, fiat, days)
+    fun getHistory(portfolioName: String, portfolioValueType: PortfolioValueType, days: Int): PortfolioHistory {
+        return portfolioHistoryRepository.findBy(portfolioName, portfolioValueType, days)
     }
 
     fun saveSnapshot(portfolioName: String, portfolioValueType: PortfolioValueType, porfolioValueSnapshot: PorfolioValueSnapshot) {

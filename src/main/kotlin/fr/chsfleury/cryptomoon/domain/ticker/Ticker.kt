@@ -1,11 +1,9 @@
 package fr.chsfleury.cryptomoon.domain.ticker
 
 import fr.chsfleury.cryptomoon.domain.model.Currency
-import fr.chsfleury.cryptomoon.domain.model.Fiat
-import fr.chsfleury.cryptomoon.domain.model.Quotes
+import fr.chsfleury.cryptomoon.domain.model.Quote
 
 interface Ticker {
-    val name: String
-    fun tickAll(fiat: Fiat): Quotes
-    fun tickKnownCurrencies(knownCurrencies: Set<Currency>, fiat: Fiat): Quotes
+    fun tickTopCurrencies(): List<Quote>
+    fun tickKnownCurrencies(knownCurrencies: Set<Currency>): List<Quote>
 }

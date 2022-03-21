@@ -1,16 +1,17 @@
 package fr.chsfleury.cryptomoon.domain.model
 
-import fr.chsfleury.cryptomoon.utils.FiatMap
+import java.math.BigDecimal
 
 class Deltas (
     val deltas: List<DeltaBalance>
 ) {
-    val total: FiatMap by lazy {
-        val map = FiatMap()
-        deltas
-            .asSequence()
-            .filter { delta -> delta.value != null }
-            .forEach { delta -> map += delta.value!! }
-        map
+    val total: BigDecimal by lazy {
+        deltas.sumOf { it.valueUSD }
     }
+
+    override fun toString(): String {
+        return "Deltas(total=$total, deltas=$deltas)"
+    }
+
+
 }

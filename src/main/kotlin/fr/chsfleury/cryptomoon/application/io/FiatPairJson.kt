@@ -1,13 +1,14 @@
 package fr.chsfleury.cryptomoon.application.io
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder
+import fr.chsfleury.cryptomoon.domain.model.Fiat
 import java.math.BigDecimal
 import java.time.Instant
 
+@JsonPropertyOrder("from", "to", "rate")
 class FiatPairJson(
-    val usdToEur: BigDecimal,
-    val at: String
+    val to: Fiat,
+    val rate: BigDecimal
 ) {
-    companion object {
-        fun of(pair: Pair<Instant, BigDecimal>): FiatPairJson = FiatPairJson(pair.second.stripTrailingZeros(), pair.first.toString())
-    }
+    val from = Fiat.USD
 }

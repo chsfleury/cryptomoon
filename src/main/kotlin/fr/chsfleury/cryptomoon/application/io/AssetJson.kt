@@ -1,21 +1,22 @@
 package fr.chsfleury.cryptomoon.application.io
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder
+import fr.chsfleury.cryptomoon.application.io.BigDecimals.applyRate
+import fr.chsfleury.cryptomoon.application.io.BigDecimals.clean
 import fr.chsfleury.cryptomoon.domain.model.stats.AssetStats
-import fr.chsfleury.cryptomoon.utils.FiatMap
 import java.math.BigDecimal
 
 @JsonPropertyOrder("balance", "price", "value")
 class AssetJson (
     val balance: BigDecimal,
-    val price: FiatMap,
-    val value: FiatMap
+    val price: BigDecimal,
+    val value: BigDecimal
 ) {
     companion object {
-        fun of(assetStats: AssetStats) = AssetJson(
+        fun of(assetStats: AssetStats, conversionRate: BigDecimal?) = AssetJson(
             assetStats.balance.stripTrailingZeros(),
-            assetStats.price.clean(),
-            assetStats.value.clean()
+            assetStats.priceUSD.applyRate(conversionRate).clean(),
+            assetStats.valueUSD.applyRate(conversionRate).clean()
         )
     }
 }

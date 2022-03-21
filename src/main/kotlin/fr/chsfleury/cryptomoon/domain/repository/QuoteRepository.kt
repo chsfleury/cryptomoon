@@ -1,10 +1,10 @@
 package fr.chsfleury.cryptomoon.domain.repository
 
-import fr.chsfleury.cryptomoon.domain.model.Quotes
+import fr.chsfleury.cryptomoon.domain.model.Quote
 
 interface QuoteRepository {
 
-    fun getLatestQuotes(ticker: String): Quotes?
-    fun insert(quotes: Quotes)
+    fun getLatestQuotes(): List<Quote>
+    fun save(quotes: List<Quote>)
 
 }

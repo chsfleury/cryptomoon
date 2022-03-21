@@ -1,25 +1,20 @@
 package fr.chsfleury.cryptomoon.domain.trigger
 
-import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.service.AccountService
-import fr.chsfleury.cryptomoon.domain.service.QuoteService
-import fr.chsfleury.cryptomoon.domain.service.TickerService
-import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
+import fr.chsfleury.cryptomoon.domain.service.CurrencyService
+import fr.chsfleury.cryptomoon.domain.ticker.Ticker
 import java.time.Duration
 
 class QuoteTrigger(
-    private val tickerService: TickerService,
-    private val quoteService: QuoteService,
+    private val ticker: Ticker,
+    private val currencyService: CurrencyService,
     private val accountService: AccountService,
-    private val fiat: Fiat,
-    triggerName: String,
-    delay: Duration = Duration.ofMinutes(15L),
     after: List<Trigger> = emptyList()
-): Trigger(triggerName, delay, after) {
+): Trigger("quotes", Duration.ofMinutes(15L), after) {
 
     override fun execute() {
-        tickerService[Tickers.COINMARKETCAP].run {
-            quoteService.insert(tickKnownCurrencies(accountService.getKnownCurrencies(), fiat))
+        ticker.run {
+            currencyService.saveQuote(tickKnownCurrencies(accountService.getKnownCurrencies()))
         }
     }
 

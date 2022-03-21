@@ -2,13 +2,8 @@ package fr.chsfleury.cryptomoon.domain.model
 
 import fr.chsfleury.cryptomoon.domain.model.Balance.Companion.toBalance
 import fr.chsfleury.cryptomoon.domain.model.Fiat.EUR
-import fr.chsfleury.cryptomoon.domain.model.Fiat.USD
 import fr.chsfleury.cryptomoon.domain.model.stats.AccountStats
 import fr.chsfleury.cryptomoon.domain.model.stats.AssetStats
-import fr.chsfleury.cryptomoon.domain.service.ATHService
-import fr.chsfleury.cryptomoon.domain.service.QuoteService
-import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
-import fr.chsfleury.cryptomoon.utils.FiatMap
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
 import java.math.BigDecimal
@@ -22,109 +17,59 @@ class AccountSnapshot(
 ) {
     private var accountStats: AccountStats? = null
 
-    fun stats(quoteService: QuoteService, athService: ATHService, ticker: Tickers) = accountStats ?: computeStats(quoteService, athService, ticker)
+    fun stats(marketData: MarketData) = accountStats ?: computeStats(marketData)
 
-    private fun computeStats(quoteService: QuoteService, athService: ATHService, ticker: Tickers): AccountStats {
+    private fun computeStats(marketData: MarketData): AccountStats {
         log.debug("compute {} account stats", origin)
-        val usdToEur: BigDecimal? = quoteService.usdToEur()
-        val quotes = quoteService[ticker]
-        val total = FiatMap()
+        val total = Sum()
 
         val assetStats = balances.asSequence()
             .filterNot(Balance::isZero)
             .map { asset ->
-                computeAssetStats(asset, quotes, usdToEur, total, athService)
+                computeAssetStats(asset, marketData, total)
             }
+            .filterNotNull()
             .toSet()
 
-        return AccountStats(origin, total, assetStats, timestamp)
+        return AccountStats(origin, total.value(), assetStats, timestamp)
             .also { accountStats = it }
     }
 
     private fun computeAssetStats(
         asset: Balance,
-        quotes: Quotes?,
-        usdToEur: BigDecimal?,
-        total: FiatMap,
-        athService: ATHService
-    ): AssetStats {
-        val balance = asset.amount
-        val price = FiatMap()
-
+        marketData: MarketData,
+        total: Sum,
+    ): AssetStats? {
         return when (asset.currency) {
-            Currencies.EUR.currency -> computeEuroStats(balance, usdToEur)
-            Currencies.USD.currency -> computeUsdStats(balance, usdToEur)
-            else -> computeCryptoStats(quotes, asset, price, usdToEur, balance, total, athService)
+            Currencies.EUR.currency -> computeEuroStats(asset.amount, marketData.rates[EUR])
+            Currencies.USD.currency -> computeUsdStats(asset.amount)
+            else -> computeCryptoStats(marketData, asset, total)
         }
     }
 
-    private fun computeEuroStats(balance: BigDecimal, usdToEur: BigDecimal?): AssetStats {
-        val price = usdToEur?.let { usd2eur ->
-            FiatMap.of(
-                EUR to BigDecimal.ONE,
-                USD to BigDecimal.ONE.setScale(4).divide(usd2eur, RoundingMode.HALF_EVEN)
-            )
-        } ?: FiatMap.of(EUR to BigDecimal.ONE)
-
-        val value = usdToEur?.let { usd2eur ->
-            FiatMap.of(
-                EUR to balance,
-                USD to balance.divide(usd2eur, RoundingMode.HALF_EVEN)
-            )
-        } ?: FiatMap.of(EUR to balance)
-
+    private fun computeEuroStats(balance: BigDecimal, usdToEur: BigDecimal?): AssetStats? {
+        if (usdToEur == null) return null
+        val price = BigDecimal.ONE.setScale(4).divide(usdToEur, RoundingMode.HALF_EVEN)
+        val value = usdToEur.multiply(balance)
         return AssetStats(Currencies.EUR.currency, null, balance, price, value, price, 100.0)
     }
 
-    private fun computeUsdStats(balance: BigDecimal, usdToEur: BigDecimal?): AssetStats {
-        val price = usdToEur?.let { usd2eur ->
-            FiatMap.of(
-                EUR to BigDecimal.ONE.multiply(usd2eur),
-                USD to BigDecimal.ONE
-            )
-        } ?: FiatMap.of(USD to BigDecimal.ONE)
-
-        val value = usdToEur?.let { usd2eur ->
-            FiatMap.of(
-                EUR to balance.multiply(usd2eur),
-                USD to balance
-            )
-        } ?: FiatMap.of(USD to balance)
-
-        return AssetStats(Currencies.USD.currency, null, balance, price, value, price, 100.0)
+    private fun computeUsdStats(balance: BigDecimal): AssetStats {
+        return AssetStats(Currencies.USD.currency, null, balance, BigDecimal.ONE, balance, BigDecimal.ONE, 100.0)
     }
 
     private fun computeCryptoStats(
-        quotes: Quotes?,
+        marketData: MarketData,
         asset: Balance,
-        price: FiatMap,
-        usdToEur: BigDecimal?,
-        balance: BigDecimal,
-        total: FiatMap,
-        athService: ATHService
-    ): AssetStats {
-        val quote = quotes?.get(asset.currency)
-        val priceUSD = quote?.price?.also {
-            price[USD] = it
-            usdToEur?.multiply(it)?.also { p -> price[EUR] = p }
-        }
-        val value = FiatMap()
-        priceUSD?.multiply(balance)?.also {
-            value[USD] = it
-            usdToEur?.multiply(it)?.also { p -> value[EUR] = p }
-        }
+        total: Sum,
+    ): AssetStats? {
+        val currencyData = marketData[asset.currency] ?: return null
+        val value = asset.amount.multiply(currencyData.priceUSD)
+        val athRatio = 100.0 * currencyData.priceUSD.toDouble() / currencyData.athUSD.toDouble()
+
         total += value
 
-        val athMap = athService[asset.currency]?.let { ath ->
-            val map = FiatMap.of(USD to ath)
-            usdToEur?.run { map[EUR] = this }
-            map
-        } ?: FiatMap()
-        val athRatio = if (athMap[USD] != null && priceUSD != null) {
-            100.0 * priceUSD.toDouble() / athMap[USD]!!.toDouble()
-        } else null
-
-        return AssetStats(asset.currency, quote?.rank, balance, price, value, athMap, athRatio)
+        return AssetStats(asset.currency, currencyData.rank, asset.amount, currencyData.priceUSD, value, currencyData.athUSD, athRatio)
     }
 
     companion object : Logging {

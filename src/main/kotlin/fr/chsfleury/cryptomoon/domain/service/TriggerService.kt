@@ -45,7 +45,14 @@ class TriggerService(
         val triggeredAt = lastTriggered(now)
         val executedSet = mutableSetOf<String>()
         val triggerExecuted = triggers.asSequence()
-            .filter { it.trigger(triggeredAt, now, force) }
+            .filter {
+                try {
+                    it.trigger(triggeredAt, now, force)
+                } catch (e: Throwable) {
+                    log.error("trigger error", e)
+                    false
+                }
+            }
             .map { it.triggerName }
             .onEach(executedSet::add)
             .partition { it in triggeredAt.keys }

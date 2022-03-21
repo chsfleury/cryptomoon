@@ -1,12 +1,18 @@
 package fr.chsfleury.cryptomoon.domain.model
 
+import fr.chsfleury.cryptomoon.application.io.BigDecimals.applyRate
 import java.math.BigDecimal
 import java.time.Instant
 
 class PorfolioValueSnapshot(
-    val fiat: Fiat,
     val at: Instant,
-    val amount: BigDecimal
+    val valueUSD: BigDecimal
 ) {
-    override fun toString(): String = amount.toPlainString() + " " + fiat + " @ " + at.toString()
+    fun applyRate(conversionRate: BigDecimal?): PorfolioValueSnapshot = if (conversionRate == null) {
+        this
+    } else {
+        PorfolioValueSnapshot(at, valueUSD.applyRate(conversionRate))
+    }
+
+    override fun toString(): String = valueUSD.toPlainString() + " USD @ " + at.toString()
 }

@@ -1,11 +1,14 @@
 package fr.chsfleury.cryptomoon.application.io.formatter.highcharts
 
+import fr.chsfleury.cryptomoon.application.io.BigDecimals.applyRate
+import fr.chsfleury.cryptomoon.application.io.BigDecimals.clean
 import fr.chsfleury.cryptomoon.application.io.formatter.ChartDataFormatter
 import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.strategies.ConnectNeighborsBucketStragegy
 import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioHistory
 import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.utils.MinMax.minMaxOf
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -18,16 +21,15 @@ object HighchartsFormatter: ChartDataFormatter {
     private const val HOUR_IN_MILLIS = 3_600_000
     override val formatName = "highcharts"
 
-    override fun assetDistributionData(portfolioStats: PortfolioStats, fiat: Fiat): List<Point> = portfolioStats.mergedAccountStats.assetsByValueDesc
-        .map { Point(it.currency.symbol, it.value[fiat]?.toDouble() ?: 0.0) }
+    override fun assetDistributionData(portfolioStats: PortfolioStats, conversionRate: BigDecimal?): List<Point> = portfolioStats.mergedAccountStats.assetsByValueDesc
+        .map { Point(it.currency.symbol, it.valueUSD.applyRate(conversionRate).toDouble()) }
 
-    override fun accountValueDistribution(portfolioStats: PortfolioStats, fiat: Fiat): List<Point> = portfolioStats.accountStats.asSequence()
-        .filter { it.total[fiat] != null }
-        .map { Point(it.origin, it.total.clean()[fiat]!!.toDouble()) }
+    override fun accountValueDistribution(portfolioStats: PortfolioStats, conversionRate: BigDecimal?): List<Point> = portfolioStats.accountStats.asSequence()
+        .map { Point(it.origin, it.total.applyRate(conversionRate).clean().toDouble()) }
         .sortedByDescending { it.y }
         .toList()
 
-    override fun valueHistory(portfolioHistory: PortfolioHistory): List<List<Any?>> {
+    override fun valueHistory(portfolioHistory: PortfolioHistory, conversionRate: BigDecimal?): List<List<Any?>> {
         if (portfolioHistory.snapshots.isEmpty()) {
             return emptyList()
         }
@@ -36,7 +38,7 @@ object HighchartsFormatter: ChartDataFormatter {
         val buckets = createBuckets(minInstant, maxInstant)
         portfolioHistory.snapshots.forEach { snapshot ->
             val key = toDateAndHour(snapshot.at)
-            buckets[key]?.add(snapshot)
+            buckets[key]?.add(snapshot.applyRate(conversionRate))
         }
 
         ConnectNeighborsBucketStragegy.connectBuckets(buckets)
@@ -44,8 +46,8 @@ object HighchartsFormatter: ChartDataFormatter {
         return buckets.map { it.value.toJson() }
     }
 
-    override fun athHistory(portfolioHistory: PortfolioHistory): Any? {
-        return portfolioHistory.snapshots.map { listOf(it.at.toEpochMilli(), it.amount) }
+    override fun athHistory(portfolioHistory: PortfolioHistory, conversionRate: BigDecimal?): Any {
+        return portfolioHistory.snapshots.map { listOf(it.at.toEpochMilli(), it.valueUSD.applyRate(conversionRate)) }
     }
 
     private fun createBuckets(minInstant: Instant, maxInstant: Instant): Map<Long, Candlestick> {

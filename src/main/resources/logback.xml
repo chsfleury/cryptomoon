@@ -15,4 +15,5 @@
   <logger name="org.eclipse.jetty.util.log" level="warn" />
   <logger name="fr.chsfleury.cryptomoon" level="info" />
   <logger name="fr.chsfleury.cryptomoon.domain.service" level="debug" />
+<!--  <logger name="fr.chsfleury.cryptomoon.infrastructure.ticker.messari" level="debug" />-->
 </configuration>

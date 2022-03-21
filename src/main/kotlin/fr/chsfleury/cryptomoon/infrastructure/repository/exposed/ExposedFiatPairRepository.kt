@@ -1,37 +1,58 @@
 package fr.chsfleury.cryptomoon.infrastructure.repository.exposed
 
+import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.repository.FiatPairRepository
-import fr.chsfleury.cryptomoon.infrastructure.repository.execAndMap
+import fr.chsfleury.cryptomoon.infrastructure.entities.FiatPairEntity
+import fr.chsfleury.cryptomoon.utils.FiatMap
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.math.BigDecimal
-import java.time.Instant
 
 object ExposedFiatPairRepository : FiatPairRepository {
+    override fun all(): FiatMap {
+        val all = FiatMap()
+        transaction {
+            FiatPairEntity.selectAll()
+                .forEach { all[Fiat[it[FiatPairEntity.fiat]]] = it[FiatPairEntity.rate] }
+        }
+        return all
+    }
 
-    private const val EUR_USD_QUERY = """
-    SELECT at, ratio
-    FROM (
-        SELECT
-            q1.at,
-            row_number() over (partition by q1.fiat, q1.at order by ABS(TIME_TO_SEC(TIMEDIFF(q1.at, q2.at))) ) nb,
-            q1.amount / q2.amount ratio
-        FROM quotes q1
-        JOIN quotes q2
-        ON ABS(TIME_TO_SEC(TIMEDIFF(q1.at, q2.at))) < 60
-        WHERE q1.currency = 'BTC'
-           AND q2.currency = 'BTC'
-           AND q1.fiat = 'EUR'
-           AND q2.fiat = 'USD'
-     ) a WHERE a.nb = 1
-     LIMIT %d;
-    """
-
-    override fun getUsdToEuros(lastDays: Int): List<Pair<Instant, BigDecimal>> {
+    override fun getUsdToFiat(fiat: Fiat): BigDecimal? {
+        if (fiat == Fiat.USD) {
+            return BigDecimal.ONE
+        }
         return transaction {
-            EUR_USD_QUERY.format(lastDays).execAndMap {
-                it.getTimestamp("at").toInstant() to it.getBigDecimal("ratio")
+            val rate = FiatPairEntity
+                .select { (FiatPairEntity.fiat eq fiat.name) }
+                .map { it[FiatPairEntity.rate] }
+
+            if (rate.isNotEmpty()) rate[0] else BigDecimal.ZERO
+        }
+    }
+
+    override fun save(rates: FiatMap) {
+        transaction {
+            rates.forEach { (f: Fiat, r: BigDecimal?) ->
+                if (r != null && exists(f)) {
+                    FiatPairEntity.update ({ FiatPairEntity.fiat eq f.name }) {
+                        it[rate] = r
+                    }
+                } else {
+                    FiatPairEntity.insert {
+                        it[fiat] = f.name
+                        it[rate] = r
+                    }
+                }
             }
         }
+    }
+
+    private fun exists(fiat: Fiat): Boolean {
+        return FiatPairEntity.select { FiatPairEntity.fiat eq fiat.name }
+            .toList()
+            .isNotEmpty()
     }
 
 }

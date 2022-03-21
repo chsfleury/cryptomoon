@@ -13,14 +13,9 @@ import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.HighchartsFor
 import fr.chsfleury.cryptomoon.application.page.DashboardPage
 import fr.chsfleury.cryptomoon.application.pebble.CryptomoonExtension
 import fr.chsfleury.cryptomoon.domain.Execution
-import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioValueType
 import fr.chsfleury.cryptomoon.domain.service.*
-import fr.chsfleury.cryptomoon.domain.ticker.ATHTicker
-import fr.chsfleury.cryptomoon.domain.trigger.ATHTrigger
-import fr.chsfleury.cryptomoon.domain.trigger.BalanceTrigger
-import fr.chsfleury.cryptomoon.domain.trigger.PortfolioValueTrigger
-import fr.chsfleury.cryptomoon.domain.trigger.QuoteTrigger
+import fr.chsfleury.cryptomoon.domain.trigger.*
 import fr.chsfleury.cryptomoon.infrastructure.configuration.LocalFileConfiguration
 import fr.chsfleury.cryptomoon.infrastructure.entities.*
 import fr.chsfleury.cryptomoon.infrastructure.repository.exposed.*
@@ -28,7 +23,6 @@ import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileAccountRe
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileConnectorRepository
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFilePortfolioRepository
 import fr.chsfleury.cryptomoon.infrastructure.repository.file.LocalFileTickerRepository
-import fr.chsfleury.cryptomoon.infrastructure.ticker.Tickers
 import fr.chsfleury.cryptomoon.infrastructure.wallet.LocalWalletsFile
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
@@ -68,24 +62,26 @@ object Cryptomoon : Logging {
 
         transaction {
             addLogger(StdOutSqlLogger)
-            SchemaUtils.create(BalanceEntity, TriggerEntity, QuoteEntity, ATHEntity, PortfolioHistoryEntity)
+            SchemaUtils.create(BalanceEntity, TriggerEntity, QuoteEntity, PortfolioHistoryEntity, FiatPairEntity, CurrencyEntity)
         }
 
+        // TICKER
+        val ticker = LocalFileTickerRepository.configuration.ticker
+        val athTicker = LocalFileTickerRepository.configuration.athTicker
+        val athTickerBackup = LocalFileTickerRepository.configuration.athTickerBackup
+        val fiatTicker = LocalFileTickerRepository.configuration.fiatTicker
+
         // SERVICES
-        val tickerService = TickerService(LocalFileTickerRepository)
-        val quoteService = QuoteService(ExposedQuoteRepository, ExposedFiatPairRepository)
+        val currencyService = CurrencyService(ExposedCurrencyDataRepository, ExposedQuoteRepository, ExposedFiatPairRepository)
         val connectorService = ConnectorService(LocalFileConnectorRepository)
         val accountService = AccountService(listOf(ExposedAccountRepository, LocalFileAccountRepository))
-        val athService = ATHService(ExposedATHRepository)
         val portfolioService = PortfolioService(LocalFilePortfolioRepository, ExposedPortfolioHistoryRepository, connectorService, accountService)
-        val balanceService = BalanceService(quoteService, ExposedBalanceRepository)
+        val balanceService = BalanceService(currencyService, ExposedBalanceRepository)
 
         // CONTROLLERS
-        val portfolioController = PortfolioController(portfolioService, quoteService, athService, balanceService)
-        val tickerController = TickerController(tickerService)
-        val fiatController = FiatController(quoteService)
-        val chartController = ChartController(portfolioService, quoteService, athService, listOf(HighchartsFormatter))
-        val athController = AthController(tickerService[Tickers.LIVECOINWATCH] as ATHTicker)
+        val portfolioController = PortfolioController(portfolioService, currencyService, balanceService)
+        val fiatController = FiatController(currencyService)
+        val chartController = ChartController(portfolioService, currencyService, listOf(HighchartsFormatter))
         val importController = ImportController()
 
         val javalin = Javalin.create(this::configureJavalin)
@@ -93,19 +89,15 @@ object Cryptomoon : Logging {
         if (Execution.isStandard()) {
             // TRIGGERS
             val balanceTrigger = BalanceTrigger(connectorService, accountService)
-            val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
-            val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, quoteService, athService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
-            val usdQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.USD, "usdQuote", after = listOf(portfolioValueTrigger))
-            val eurQuoteTrigger = QuoteTrigger(tickerService, quoteService, accountService, Fiat.EUR, "eurQuote", Duration.ofDays(1), listOf(usdQuoteTrigger))
-            val athTrigger = ATHTrigger(
-                tickerService[Tickers.LIVECOINWATCH] as ATHTicker,
-                athService,
-                accountService
-            )
+            val portfolioValueTrigger = PortfolioValueTrigger(portfolioService, currencyService, PortfolioValueType.CURRENT, "portfolioValue", Duration.ofHours(1))
+            val athPortfolioValueTrigger = PortfolioValueTrigger(portfolioService, currencyService, PortfolioValueType.ATH, "portfolioValueATH", Duration.ofDays(1))
+            val quoteTrigger = QuoteTrigger(ticker, currencyService, accountService, listOf(portfolioValueTrigger))
+            val fiatPairTrigger = FiatPairTrigger(fiatTicker, currencyService)
+            val athTrigger = ATHTrigger(athTicker, athTickerBackup, currencyService, accountService)
 
             val triggerService = TriggerService(
                 ExposedTriggerRepository,
-                balanceTrigger, eurQuoteTrigger, usdQuoteTrigger, athTrigger, portfolioValueTrigger, athPortfolioValueTrigger
+                balanceTrigger, quoteTrigger, fiatPairTrigger, portfolioValueTrigger, athPortfolioValueTrigger, athTrigger
             ).start()
 
             // CONTROLLERS
@@ -117,8 +109,8 @@ object Cryptomoon : Logging {
         }
 
         // PAGES
-        configureRenderer()
-        val dashboardPage = DashboardPage(portfolioService, quoteService, athService, balanceService)
+        configureRenderer(currencyService)
+        val dashboardPage = DashboardPage(portfolioService, currencyService, balanceService)
 
         javalin
             .get("/", dashboardPage::getDashboard)
@@ -131,17 +123,11 @@ object Cryptomoon : Logging {
             .get("/api/v1/portfolios/{portfolio}/delta", portfolioController::getPortfolioDelta)
             .get("/api/v1/portfolios/{portfolio}/history") { ctx -> chartController.getPortfolioHistory(PortfolioValueType.CURRENT, ctx) }
             .get("/api/v1/portfolios/{portfolio}/history/{valueType}", chartController::getPortfolioHistory)
-            .get("/api/v1/tickers", tickerController::getTickerNames)
-            .get("/api/v1/tickers/{ticker}", tickerController::getTick)
-            .get("/api/v1/fiats", fiatController::getFiatPair)
-            .get("/api/v1/fiats/last", fiatController::getLastFiatPair)
-            .get("/api/v1/aths/{symbol}", athController::getAth)
+            .get("/api/v1/fiats", fiatController::getAllFiatPairs)
+            .get("/api/v1/fiats/{fiat}", fiatController::getFiatPair)
             .post("/api/v1/import/binance/staking", importController::extractBalanceFromBinanceStakingExport)
 
         javalin.start(port)
-        // LISTENERS
-        accountService.addListener(portfolioService)
-        quoteService.addListener(accountService)
 
         Runtime.getRuntime().addShutdownHook(Thread { LocalWalletsFile.stopWatch() })
     }
@@ -186,7 +172,7 @@ object Cryptomoon : Logging {
         }
     }
 
-    private fun configureRenderer() {
+    private fun configureRenderer(currencyService: CurrencyService) {
         val templatesPath: String = LocalFileConfiguration["templatesPath"] ?: "default"
         val loader = if (templatesPath == "default") {
             log.info("load templates from classpath")
@@ -210,7 +196,7 @@ object Cryptomoon : Logging {
             .cacheActive(templateCached)
             .loader(loader)
             .strictVariables(false)
-            .extension(CryptomoonExtension)
+            .extension(CryptomoonExtension(currencyService))
             .build()
 
         JavalinPebble.configure(engine)

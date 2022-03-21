@@ -1,4 +1,4 @@
-package fr.chsfleury.cryptomoon.infrastructure.ticker.livecoinwatch.dto
+package fr.chsfleury.cryptomoon.infrastructure.ticker.livecoinwatch
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.math.BigDecimal
@@ -11,3 +11,11 @@ data class CoinSingleResponseItem (
 ) {
     fun toCoinResponseItem(code: String): CoinResponseItem = CoinResponseItem(name, code, allTimeHighUSD, rate)
 }
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class CoinResponseItem (
+    val name: String,
+    val code: String,
+    val allTimeHighUSD: BigDecimal?,
+    val rate: BigDecimal?
+)

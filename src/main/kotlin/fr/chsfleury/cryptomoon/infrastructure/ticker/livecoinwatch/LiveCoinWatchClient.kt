@@ -3,10 +3,6 @@ package fr.chsfleury.cryptomoon.infrastructure.ticker.livecoinwatch
 import feign.Headers
 import feign.Param
 import feign.RequestLine
-import fr.chsfleury.cryptomoon.infrastructure.ticker.livecoinwatch.dto.CoinListRequest
-import fr.chsfleury.cryptomoon.infrastructure.ticker.livecoinwatch.dto.CoinResponseItem
-import fr.chsfleury.cryptomoon.infrastructure.ticker.livecoinwatch.dto.CoinSingleRequest
-import fr.chsfleury.cryptomoon.infrastructure.ticker.livecoinwatch.dto.CoinSingleResponseItem
 
 @Headers(
     "x-api-key: {apiKey}",

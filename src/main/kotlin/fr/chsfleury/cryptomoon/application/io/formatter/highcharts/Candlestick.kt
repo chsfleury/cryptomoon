@@ -20,34 +20,34 @@ class Candlestick (
             close = snapshot
         }
 
-        if (min == null || snapshot.amount < min!!.amount) {
+        if (min == null || snapshot.valueUSD < min!!.valueUSD) {
             min = snapshot
         }
 
-        if (max == null || snapshot.amount > max!!.amount) {
+        if (max == null || snapshot.valueUSD > max!!.valueUSD) {
             max = snapshot
         }
     }
 
     fun adjustMinMaxWithBounds() {
-        if (open!!.amount > max!!.amount) {
+        if (open!!.valueUSD > max!!.valueUSD) {
             max = open
         }
 
-        if (open!!.amount < min!!.amount) {
+        if (open!!.valueUSD < min!!.valueUSD) {
             min = open
         }
 
-        if (close!!.amount > max!!.amount) {
+        if (close!!.valueUSD > max!!.valueUSD) {
             max = close
         }
 
-        if (close!!.amount < min!!.amount) {
+        if (close!!.valueUSD < min!!.valueUSD) {
             min = close
         }
     }
 
-    fun toJson() = listOf(at, open?.amount, max?.amount, min?.amount, close?.amount)
+    fun toJson() = listOf(at, open?.valueUSD, max?.valueUSD, min?.valueUSD, close?.valueUSD)
     override fun toString(): String {
         return "(open=$open, min=$min, max=$max, close=$close) @ " + Instant.ofEpochMilli(at).toString()
     }
