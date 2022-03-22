@@ -1,22 +1,27 @@
 package fr.chsfleury.cryptomoon.domain.service
 
-import fr.chsfleury.cryptomoon.domain.listener.AccountUpdateListener
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.github.benmanes.caffeine.cache.LoadingCache
 import fr.chsfleury.cryptomoon.domain.model.*
 import fr.chsfleury.cryptomoon.domain.repository.PortfolioHistoryRepository
 import fr.chsfleury.cryptomoon.domain.repository.PortfolioRepository
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
+import java.time.Duration
 
 class PortfolioService(
     portfolioRepository: PortfolioRepository,
     private val portfolioHistoryRepository: PortfolioHistoryRepository,
     connectorService: ConnectorService,
     private val accountService: AccountService
-): AccountUpdateListener, Logging {
+): Logging {
     private val log = logger()
 
     private val portfolioConfiguration: PortfolioConfiguration
-    private val portfolioCache = mutableMapOf<Pair<String, Boolean>, Portfolio>()
+    private val portfolioCache: LoadingCache<Pair<String, Boolean>, Portfolio> = Caffeine.newBuilder()
+        .expireAfterWrite(Duration.ofHours(1))
+        .refreshAfterWrite(Duration.ofMinutes(3))
+        .build { (name, merged) -> computePortfolio(name, merged) }
 
     init {
         portfolioConfiguration = portfolioRepository.loadConfiguration() ?: defaultPortfolioConfiguration(connectorService)
@@ -27,19 +32,26 @@ class PortfolioService(
     }
 
     fun getPortfolio(name: String, merged: Boolean): Portfolio {
-        return portfolioCache.computeIfAbsent(name to merged) { (n, m) ->
-            log.debug("retrieving {} portfolio data", name)
-            val portfolioAccountNames = portfolioConfiguration[n] ?: error("unknown portfolio")
-            val accounts = if (m) {
-                setOf(accountService.mergedAccounts(portfolioAccountNames))
-            } else {
-                accountService.allAccounts()
-            }
-            val filteredAccounts = accounts.asSequence()
-                .filter { it.origin == AccountSnapshot.ALL || (it.origin in portfolioAccountNames) || compositeNameBelongToPortfolio(it.origin, portfolioAccountNames) }
-                .toSet()
-            Portfolio(n, filteredAccounts)
+        return portfolioCache.get(name to merged)
+    }
+
+    private fun computePortfolio(name: String, merged: Boolean): Portfolio {
+        log.debug("retrieving {} portfolio data", name)
+        val portfolioAccountNames = portfolioConfiguration[name] ?: error("unknown portfolio")
+        val accounts = if (merged) {
+            setOf(accountService.mergedAccounts(portfolioAccountNames))
+        } else {
+            accountService.allAccounts()
         }
+        val filteredAccounts = accounts.asSequence()
+            .filter {
+                it.origin == AccountSnapshot.ALL || (it.origin in portfolioAccountNames) || compositeNameBelongToPortfolio(
+                    it.origin,
+                    portfolioAccountNames
+                )
+            }
+            .toSet()
+        return Portfolio(name, filteredAccounts)
     }
 
     fun getPortfolioAccount(portfolioName: String, origin: String): AccountSnapshot? {
@@ -75,13 +87,4 @@ class PortfolioService(
     private fun compositeNameBelongToPortfolio(accountSnapshotName: String, portfolioAccountNames: Collection<String>) = accountSnapshotName
             .splitToSequence('~')
             .all(portfolioAccountNames::contains)
-
-    override fun onAccountUpdate(accounts: Collection<String>) {
-        val obsoletePortfolios = portfolioConfiguration.portfolioForAccount(accounts)
-        log.debug("remove cache for portfolio: {}", obsoletePortfolios)
-
-        portfolioCache.keys
-            .filter { it.first in obsoletePortfolios }
-            .forEach { portfolioCache.remove(it) }
-    }
 }

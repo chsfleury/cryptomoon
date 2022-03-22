@@ -1,7 +1,5 @@
 package fr.chsfleury.cryptomoon.domain.service
 
-import fr.chsfleury.cryptomoon.domain.listener.AccountUpdateListener
-import fr.chsfleury.cryptomoon.domain.listener.QuoteUpdateListener
 import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
 import fr.chsfleury.cryptomoon.domain.model.Currency
 import fr.chsfleury.cryptomoon.domain.repository.AccountRepository
@@ -10,9 +8,8 @@ import fr.chsfleury.cryptomoon.utils.logger
 
 class AccountService(
     private val accountRepositories: Collection<AccountRepository>
-): QuoteUpdateListener, Logging {
+): Logging {
     private val log = logger()
-    private val accountUpdateListeners = mutableSetOf<AccountUpdateListener>()
 
     private var allAccountCache: Set<AccountSnapshot>? = null
     private val mergedAccountCache = mutableMapOf<Set<String>, AccountSnapshot>()
@@ -63,36 +60,5 @@ class AccountService(
                 it.insert(account)
             }
         }
-        notifyAccountUpdate(listOf(account))
-    }
-
-    fun addListener(accountUpdateListener: AccountUpdateListener) {
-        accountUpdateListeners.add(accountUpdateListener)
-    }
-
-    private fun notifyAccountUpdate(accounts: Collection<AccountSnapshot>) {
-        val obsoleteOrigins = accounts.map(AccountSnapshot::origin)
-
-        log.debug("invalidate all-accounts cache")
-        allAccountCache = null
-
-        log.debug("invalidate merged cache for {}", obsoleteOrigins)
-        mergedAccountCache.keys
-            .filter { key -> obsoleteOrigins.any { origin -> origin in key } }
-            .forEach { mergedAccountCache.remove(it) }
-
-        log.debug("notify listeners of {} account update", obsoleteOrigins)
-        accountUpdateListeners.forEach {
-            it.onAccountUpdate(obsoleteOrigins)
-        }
-    }
-
-    override fun onQuoteUpdate(currencies: Set<Currency>) {
-        val accountSnapshots = allAccounts()
-            .filter { account ->
-                account.balances.any { b -> b.currency in currencies }
-            }
-
-        notifyAccountUpdate(accountSnapshots)
     }
 }
