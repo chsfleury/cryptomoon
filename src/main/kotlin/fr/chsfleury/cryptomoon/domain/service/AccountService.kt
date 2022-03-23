@@ -1,22 +1,27 @@
 package fr.chsfleury.cryptomoon.domain.service
 
+import com.github.benmanes.caffeine.cache.Caffeine
+import com.github.benmanes.caffeine.cache.LoadingCache
+import com.google.common.base.Suppliers
 import fr.chsfleury.cryptomoon.domain.model.AccountSnapshot
 import fr.chsfleury.cryptomoon.domain.model.Currency
 import fr.chsfleury.cryptomoon.domain.repository.AccountRepository
 import fr.chsfleury.cryptomoon.utils.Logging
 import fr.chsfleury.cryptomoon.utils.logger
+import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 class AccountService(
     private val accountRepositories: Collection<AccountRepository>
-): Logging {
+) : Logging {
     private val log = logger()
 
-    private var allAccountCache: Set<AccountSnapshot>? = null
-    private val mergedAccountCache = mutableMapOf<Set<String>, AccountSnapshot>()
+    private var allAccountCache = Suppliers.memoizeWithExpiration(this::getAllAccounts, 3, TimeUnit.MINUTES)
+    private val mergedAccountCache: LoadingCache<Set<String>, AccountSnapshot> = Caffeine.newBuilder()
+        .expireAfterWrite(Duration.ofMinutes(3))
+        .build { origins -> computeAccountMerge(origins) }
 
-    fun allAccounts(): Set<AccountSnapshot> {
-        return allAccountCache ?: getAllAccounts().also { allAccountCache = it }
-    }
+    fun allAccounts(): Set<AccountSnapshot> = allAccountCache.get()
 
     private fun getAllAccounts(): Set<AccountSnapshot> {
         log.debug("retrieve all accounts data")
@@ -38,13 +43,15 @@ class AccountService(
         }
     }
 
-    fun mergedAccounts(origins: Set<String>): AccountSnapshot {
-        return mergedAccountCache.computeIfAbsent(origins) { o ->
-            accountRepositories.asSequence().flatMap { repo ->
-                sequenceOf(repo.mergedAccounts(o))
-            }.toList().let { AccountSnapshot.merge(it, AccountSnapshot.ALL) } ?: error("a merged account cannot be null")
+    fun mergedAccounts(origins: Set<String>): AccountSnapshot = mergedAccountCache.get(origins)
+
+    private fun computeAccountMerge(origins: Set<String>) = accountRepositories.asSequence()
+        .flatMap { repo ->
+            sequenceOf(repo.mergedAccounts(origins))
         }
-    }
+        .toList()
+        .let { AccountSnapshot.merge(it, AccountSnapshot.ALL) }
+        ?: error("a merged account cannot be null")
 
     fun getAccount(origin: String): AccountSnapshot? = accountRepositories.asSequence().flatMap { repo ->
         repo.getAccount(origin)?.let { sequenceOf(it) } ?: emptySequence()

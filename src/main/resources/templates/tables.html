@@ -15,10 +15,10 @@
     <tr class="text-l">
         <td class="py-2 px-4"><img src="{{ asset.currency.logoUrl }}" alt="{{ asset.currency.symbol }}" class="hidden lg:inline w-8 mr-1"/> {{ asset.currency.symbol }}</td>
         <td class="py-2 px-4 hidden lg:table-cell">{{ asset.rank }}</td>
-        <td class="py-2 px-4">$ {{ asset.priceUSD }}</td>
-        <td class="py-2 px-4 hidden lg:table-cell">$ {{ asset.athUSD }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
-        <td class="py-2 px-4">{{ asset.balance | balance }}</td>
-        <td class="py-2 px-4">€ {{ asset.valueUSD | rate('EUR') | numberformat("#.###") }}</td>
+        <td class="py-2 px-4">$ {{ asset.priceUSD | pretty }}</td>
+        <td class="py-2 px-4 hidden lg:table-cell">$ {{ asset.athUSD | pretty }} <span class="text-sm text-gray-400">{{ asset.athRatio | numberformat("#.##") | notNullAdd("%") }}</span></td>
+        <td class="py-2 px-4">{{ asset.balance | pretty }}</td>
+        <td class="py-2 px-4">€ {{ asset.valueUSD | rate('EUR') | pretty }}</td>
     </tr>
     {% endfor %}
     </tbody>
@@ -36,13 +36,13 @@
     </thead>
     <tbody>
     <tr>
-        <th class="py-2 text-xl" colspan="3">€ {{ deltaBalances.total | rate('EUR') | numberformat("#.###") }}</th>
+        <th class="py-2 text-xl" colspan="3">€ {{ deltaBalances.total | rate('EUR') | pretty }}</th>
     </tr>
     {% for delta in deltaBalances.deltas %}
     <tr class="text-l">
         <td class="py-2 px-4"><img src="{{ delta.currency.logoUrl }}" alt="{{ delta.currency.symbol }}" class="hidden lg:inline w-8 mr-1"/> {{ delta.currency.symbol }}</td>
-        <td class="py-2 px-4">{{ delta.amount | balance }}</td>
-        <td class="py-2 px-4">€ {{ delta.valueUSD | rate('EUR') | numberformat("#.###") }}</td>
+        <td class="py-2 px-4">{{ delta.amount | pretty }}</td>
+        <td class="py-2 px-4">€ {{ delta.valueUSD | rate('EUR') | pretty }}</td>
     </tr>
     {% endfor %}
     </tbody>

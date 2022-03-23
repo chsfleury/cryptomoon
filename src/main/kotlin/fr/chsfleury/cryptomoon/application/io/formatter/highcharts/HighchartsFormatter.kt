@@ -4,7 +4,6 @@ import fr.chsfleury.cryptomoon.application.io.BigDecimals.applyRate
 import fr.chsfleury.cryptomoon.application.io.BigDecimals.clean
 import fr.chsfleury.cryptomoon.application.io.formatter.ChartDataFormatter
 import fr.chsfleury.cryptomoon.application.io.formatter.highcharts.strategies.ConnectNeighborsBucketStragegy
-import fr.chsfleury.cryptomoon.domain.model.Fiat
 import fr.chsfleury.cryptomoon.domain.model.PortfolioHistory
 import fr.chsfleury.cryptomoon.domain.model.stats.PortfolioStats
 import fr.chsfleury.cryptomoon.utils.MinMax.minMaxOf
@@ -18,7 +17,8 @@ import java.util.*
 
 object HighchartsFormatter: ChartDataFormatter {
 
-    private const val HOUR_IN_MILLIS = 3_600_000
+    private const val BUCKET_SIZE_IN_SECONDS = 1_200 // 20min
+    private const val BUCKET_SIZE_IN_MILLIS = BUCKET_SIZE_IN_SECONDS * 1000
     override val formatName = "highcharts"
 
     override fun assetDistributionData(portfolioStats: PortfolioStats, conversionRate: BigDecimal?): List<Point> = portfolioStats.mergedAccountStats.assetsByValueDesc
@@ -37,7 +37,7 @@ object HighchartsFormatter: ChartDataFormatter {
         val (minInstant, maxInstant) = portfolioHistory.snapshots.minMaxOf { it.at } ?: error("unexpected")
         val buckets = createBuckets(minInstant, maxInstant)
         portfolioHistory.snapshots.forEach { snapshot ->
-            val key = toDateAndHour(snapshot.at)
+            val key = toBucketKey(snapshot.at)
             buckets[key]?.add(snapshot.applyRate(conversionRate))
         }
 
@@ -51,21 +51,23 @@ object HighchartsFormatter: ChartDataFormatter {
     }
 
     private fun createBuckets(minInstant: Instant, maxInstant: Instant): Map<Long, Candlestick> {
-        val max = toDateAndHour(maxInstant)
+        val max = toBucketKey(maxInstant)
         val buckets = TreeMap<Long, Candlestick>()
-        var bucketKey = toDateAndHour(minInstant)
+        var bucketKey = toBucketKey(minInstant)
         while (bucketKey <= max) {
             buckets[bucketKey] = Candlestick(bucketKey)
-            bucketKey += HOUR_IN_MILLIS
+            bucketKey += BUCKET_SIZE_IN_MILLIS
         }
         return buckets
     }
 
-    private fun toDateAndHour(instant: Instant): Long {
+    private fun toBucketKey(instant: Instant): Long {
         val dateTime = LocalDateTime.ofInstant(instant, ZoneOffset.UTC)
+        val secondsOfDay = dateTime.toLocalTime().toSecondOfDay()
+        val truncatedSecondOfDay = (secondsOfDay / BUCKET_SIZE_IN_SECONDS) * BUCKET_SIZE_IN_SECONDS
         return 1000 * LocalDateTime.of(
             dateTime.toLocalDate(),
-            LocalTime.of(dateTime.hour, 0)
+            LocalTime.ofSecondOfDay(truncatedSecondOfDay.toLong())
         ).toEpochSecond(ZoneOffset.UTC)
     }
 }

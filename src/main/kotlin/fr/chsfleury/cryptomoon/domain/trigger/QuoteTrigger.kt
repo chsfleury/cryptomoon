@@ -10,7 +10,7 @@ class QuoteTrigger(
     private val currencyService: CurrencyService,
     private val accountService: AccountService,
     after: List<Trigger> = emptyList()
-): Trigger("quotes", Duration.ofMinutes(15L), after) {
+): Trigger("quotes", Duration.ofMinutes(5L), after) {
 
     override fun execute() {
         ticker.run {

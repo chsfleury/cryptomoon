@@ -22,6 +22,7 @@
         <xchange.version>5.0.12</xchange.version>
         <openfeign.version>11.8</openfeign.version>
         <junit.version>5.8.2</junit.version>
+        <assertj.version>3.22.0</assertj.version>
         <exposed.version>0.37.3</exposed.version>
         <hikaricp.version>5.0.1</hikaricp.version>
         <mysql.version>8.0.25</mysql.version>
@@ -169,6 +170,12 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
 

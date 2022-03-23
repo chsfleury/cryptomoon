@@ -19,8 +19,7 @@ class PortfolioService(
 
     private val portfolioConfiguration: PortfolioConfiguration
     private val portfolioCache: LoadingCache<Pair<String, Boolean>, Portfolio> = Caffeine.newBuilder()
-        .expireAfterWrite(Duration.ofHours(1))
-        .refreshAfterWrite(Duration.ofMinutes(3))
+        .expireAfterWrite(Duration.ofMinutes(3))
         .build { (name, merged) -> computePortfolio(name, merged) }
 
     init {
